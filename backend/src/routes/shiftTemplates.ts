@@ -27,6 +27,46 @@ router.post('/', async (req, res) => {
   }
 });
 
+// New bulk import endpoint: accept an array of template payloads and create them one-by-one
+router.post('/bulk', async (req, res) => {
+  try {
+    const ShiftTemplate = require('../models/shiftTemplate').default;
+    const items = req.body;
+    if (!Array.isArray(items)) return res.status(400).json({ error: 'expected an array of templates' });
+
+    const results: Array<any> = [];
+
+    for (let i = 0; i < items.length; i++) {
+      const raw = items[i] || {};
+      try {
+        // basic validation
+        if (!raw.recurrence || !raw.recurrence.type) {
+          results.push({ index: i, success: false, error: 'recurrence.type required' });
+          continue;
+        }
+
+        const payload = { ...raw };
+        // normalize dates
+        if (!payload.recurrence.startDate) payload.recurrence.startDate = new Date();
+        if (payload.recurrence.startDate) payload.recurrence.startDate = new Date(payload.recurrence.startDate);
+        if (payload.recurrence.endDate) payload.recurrence.endDate = new Date(payload.recurrence.endDate);
+
+        const doc = new ShiftTemplate(payload);
+        await doc.save();
+        results.push({ index: i, success: true, id: doc._id });
+      } catch (errItem) {
+        console.error('bulk create error item', i, errItem);
+        results.push({ index: i, success: false, error: (errItem as any)?.message || String(errItem) });
+      }
+    }
+
+    res.json({ results, count: results.filter(r => r.success).length });
+  } catch (err) {
+    console.error('shiftTemplates BULK POST error', err);
+    res.status(500).json({ error: 'failed to import templates', details: (err as any)?.message });
+  }
+});
+
 router.get('/', async (req, res) => {
   try {
     const ShiftTemplate = require('../models/shiftTemplate').default;

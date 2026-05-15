@@ -119,7 +119,6 @@ export default function ShiftTemplateEditor({ id, onSaved }: any) {
           <h3 style={{ margin:0 }}>{id ? 'Editar Escala' : 'Criar Escala'}</h3>
           <div>
             {id && <button className="btn secondary" onClick={handleDelete} disabled={deleting}>{deleting ? 'Apagando...' : 'Apagar'}</button>}
-            <button className="btn" style={{ marginLeft:8 }} onClick={close}>Fechar</button>
           </div>
         </div>
 
@@ -157,7 +156,12 @@ export default function ShiftTemplateEditor({ id, onSaved }: any) {
                   <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
                     {WEEKDAYS.map(d => (
                       <label key={d.val} style={{ display:'inline-flex', alignItems:'center', gap:6 }}>
-                        <input type="checkbox" checked={weekdays.includes(d.val)} onChange={() => toggleWeekday(d.val)} /> {d.label}
+                        <input
+                          type="radio"
+                          name="weekly-day"
+                          checked={weekdays[0] === d.val}
+                          onChange={() => setWeekdays([d.val])}
+                        /> {d.label}
                       </label>
                     ))}
                   </div>

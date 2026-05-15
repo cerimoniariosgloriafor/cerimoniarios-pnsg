@@ -26,7 +26,17 @@ export default function TemplatesWeeklyPage() {
   }, []);
 
   const weeklyTemplates = templates.filter(t => t.recurrence?.type === 'weekly');
-  const itemsForDay = weeklyTemplates.filter(t => (t.recurrence?.weekly?.weekdays || []).includes(selected));
+  // helper to sort by time.start (HH:MM)
+  const toMinutes = (time?: string) => {
+    if (!time || typeof time !== 'string') return 0;
+    const [h, m] = time.split(':').map(x => Number(x || 0));
+    return (Number.isFinite(h) ? h : 0) * 60 + (Number.isFinite(m) ? m : 0);
+  };
+
+  const itemsForDay = weeklyTemplates
+    .filter(t => (t.recurrence?.weekly?.weekdays || []).includes(selected))
+    .slice()
+    .sort((a, b) => toMinutes(a.time?.start) - toMinutes(b.time?.start));
 
   const openEditTemplate = (templateId: string) => {
     if (!templateId) return;
@@ -74,16 +84,6 @@ export default function TemplatesWeeklyPage() {
           ))}
         </div>
       </div>
-
-      {/* bottom-right back button so user returns to templates list (or weekly parent) */}
-      <button
-        className="back-fab"
-        aria-label="Voltar"
-        onClick={() => { window.history.pushState({}, '', '/templates'); window.dispatchEvent(new PopStateEvent('popstate')); }}
-      >
-        ←
-      </button>
-
     </div>
   );
 }

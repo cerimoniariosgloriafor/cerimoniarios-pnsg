@@ -41,7 +41,6 @@ export default function ShiftTemplatesPage() {
       <div className="page-header">
         <div>
           <h2>Escalas</h2>
-          <div className="result-count">{templates.length} modelos</div>
         </div>
         <div style={{ width: 320 }}>
           {/* creation via FAB bottom-left */}
