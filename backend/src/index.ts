@@ -13,6 +13,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+import denyWrites from './middleware/denyWrites';
+app.use(denyWrites);
+
 app.use('/api/locations', locationsRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/shift-templates', templatesRouter);
