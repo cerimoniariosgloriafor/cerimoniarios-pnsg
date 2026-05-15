@@ -51,14 +51,17 @@ export default function ShiftTemplatesPage() {
         <div style={{ display: 'flex', gap: 12 }}>
           <div className="big-card" style={{ flex: 1, cursor: 'pointer' }} onClick={openWeekly}>
             <div style={{ fontSize: 18, fontWeight: 700 }}>Escalas Semanais</div>
-            <div style={{ color: '#64748b', marginTop: 8 }}>{weeklyCount} modelos semanais</div>
-            <div style={{ marginTop: 12, color: '#0ea5a0' }}>Ver agenda fixa (segunda → sábado)</div>
+            <div style={{ marginTop: 12, color: '#0ea5a0' }}>Ver escalas semanal</div>
           </div>
 
           <div className="big-card" style={{ flex: 1, cursor: 'pointer' }} onClick={openMonthly}>
             <div style={{ fontSize: 18, fontWeight: 700 }}>Escalas Mensais</div>
-            <div style={{ color: '#64748b', marginTop: 8 }}>{monthlyCount} modelos mensais</div>
-            <div style={{ marginTop: 12, color: '#0ea5a0' }}>Ver escalas mensais (ex.: 2º domingo)</div>
+            <div style={{ marginTop: 12, color: '#0ea5a0' }}>Ver escalas mensais</div>
+          </div>
+
+          <div className="big-card" style={{ flex: 1, cursor: 'pointer' }} onClick={() => { window.history.pushState({}, '', '/agenda'); window.dispatchEvent(new PopStateEvent('popstate')); }}>
+            <div style={{ fontSize: 18, fontWeight: 700 }}>Agenda</div>
+            <div style={{ marginTop: 12, color: '#0ea5a0' }}>Visão semanal</div>
           </div>
         </div>  
       </div>

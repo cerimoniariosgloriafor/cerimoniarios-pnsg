@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { expandTemplateOccurrences } from '../utils/rruleHelper';
 
 const router = Router();
 
@@ -76,6 +77,38 @@ router.get('/', async (req, res) => {
   } catch (err) {
     console.error('shiftTemplates GET error', err);
     res.status(500).json({ error: 'failed to fetch templates', details: (err as any)?.message });
+  }
+});
+
+// move occurrences route here (before the ':id' param route) to avoid collisions with 'occurrences' string
+router.get('/occurrences', async (req, res) => {
+  try {
+    const ShiftTemplate = require('../models/shiftTemplate').default;
+    const dateStr = (req.query.date || '').toString();
+    if (!dateStr) return res.status(400).json({ error: 'date query required (YYYY-MM-DD)' });
+    // parse YYYY-MM-DD into a local date to avoid timezone shifts (new Date("YYYY-MM-DD") parses as UTC)
+    const parts = dateStr.split('-').map(p => parseInt(p, 10));
+    if (parts.length < 3 || parts.some(p => isNaN(p))) return res.status(400).json({ error: 'invalid date' });
+    const d = new Date(parts[0], parts[1] - 1, parts[2]);
+
+    const start = new Date(d);
+    start.setHours(0,0,0,0);
+    const end = new Date(d);
+    end.setHours(23,59,59,999);
+
+    const list = await ShiftTemplate.find().populate('locationId').populate('users');
+    const results: any[] = [];
+    for (const t of list) {
+      const occ = expandTemplateOccurrences(t.toObject ? t.toObject() : t, start, end);
+      if (occ && occ.length) {
+        results.push({ template: t, occurrences: occ });
+      }
+    }
+
+    res.json(results);
+  } catch (err) {
+    console.error('shiftTemplates occurrences error', err);
+    res.status(500).json({ error: 'failed to compute occurrences', details: (err as any)?.message });
   }
 });
 

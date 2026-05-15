@@ -8,6 +8,8 @@ import ShiftTemplatesPage from './pages/templates/ShiftTemplatesPage';
 import ShiftTemplateEditor from './pages/templates/ShiftTemplateEditor';
 import TemplatesWeeklyPage from './pages/templates/TemplatesWeeklyPage';
 import TemplatesMonthlyPage from './pages/templates/TemplatesMonthlyPage';
+import AgendaPage from './pages/templates/AgendaPage';
+import AgendaEventEditor from './pages/templates/AgendaEventEditor';
 
 axios.defaults.baseURL = (import.meta as any).env?.DEV ? 'http://localhost:4000/api' : '/api';
 
@@ -24,6 +26,9 @@ export default function App() {
     if (p === '/templates/new') return 'template_new';
     if (p === '/templates/weekly') return 'templates_weekly';
     if (p === '/templates/monthly') return 'templates_monthly';
+    if (p === '/agenda') return 'templates_agenda';
+    if (p === '/agenda/new') return 'agenda_new';
+    if (p.startsWith('/agenda/')) return 'agenda_edit';
     if (p.startsWith('/templates/')) return 'template_edit';
     if (p === '/locations/new') return 'location_new';
     if (p.startsWith('/locations/')) return 'location_edit';
@@ -41,6 +46,8 @@ export default function App() {
     if (m2) return m2[1];
     const m3 = p.match(/^\/templates\/(.+)/);
     if (m3) return m3[1];
+    const m4 = p.match(/^\/agenda\/(.+)/);
+    if (m4) return m4[1];
     return null;
   });
 
@@ -57,6 +64,9 @@ export default function App() {
     else if (normalized === '/templates/new') { setPage('template_new'); setCurrentId(null); }
     else if (normalized === '/templates/weekly') { setPage('templates_weekly'); setCurrentId(null); }
     else if (normalized === '/templates/monthly') { setPage('templates_monthly'); setCurrentId(null); }
+    else if (normalized === '/agenda') { setPage('templates_agenda'); setCurrentId(null); }
+    else if (normalized === '/agenda/new') { setPage('agenda_new'); setCurrentId(null); }
+    else if (normalized.startsWith('/agenda/')) { setPage('agenda_edit'); setCurrentId(normalized.replace('/agenda/', '')); }
     else if (normalized.startsWith('/templates/')) { setPage('template_edit'); setCurrentId(normalized.replace('/templates/', '')); }
     else if (normalized === '/locations/new') { setPage('location_new'); setCurrentId(null); }
     else if (normalized.startsWith('/locations/')) { setPage('location_edit'); setCurrentId(normalized.replace('/locations/', '')); }
@@ -79,6 +89,9 @@ export default function App() {
       else if (p === '/templates/new') { setPage('template_new'); setCurrentId(null); }
       else if (p === '/templates/weekly') { setPage('templates_weekly'); setCurrentId(null); }
       else if (p === '/templates/monthly') { setPage('templates_monthly'); setCurrentId(null); }
+      else if (p === '/agenda') { setPage('templates_agenda'); setCurrentId(null); }
+      else if (p === '/agenda/new') { setPage('agenda_new'); setCurrentId(null); }
+      else if (p.startsWith('/agenda/')) { setPage('agenda_edit'); setCurrentId(p.replace('/agenda/', '')); }
       else if (p.startsWith('/templates/')) { setPage('template_edit'); setCurrentId(p.replace('/templates/', '')); }
       else if (p === '/locations/new') { setPage('location_new'); setCurrentId(null); }
       else if (p.startsWith('/locations/')) { setPage('location_edit'); setCurrentId(p.replace('/locations/', '')); }
@@ -202,6 +215,16 @@ export default function App() {
 
           {page === 'templates_monthly' && (
             <TemplatesMonthlyPage />
+          )}
+
+          {page === 'templates_agenda' && (
+            <AgendaPage />
+          )}
+          {page === 'agenda_new' && (
+            <AgendaEventEditor predate={null} />
+          )}
+          {page === 'agenda_edit' && currentId && (
+            <AgendaEventEditor id={currentId} />
           )}
         </main>
       </div>

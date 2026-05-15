@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import locationsRouter from './routes/locations';
 import usersRouter from './routes/users';
 import templatesRouter from './routes/shiftTemplates';
+import agendaEventsRouter from './routes/agendaEvents';
 
 dotenv.config();
 
@@ -15,6 +16,7 @@ app.use(express.json());
 app.use('/api/locations', locationsRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/shift-templates', templatesRouter);
+app.use('/api/agenda-events', agendaEventsRouter);
 
 const PORT = process.env.PORT || 4000;
 const MONGO = process.env.MONGO_URI || 'mongodb://localhost:27017/cerimoniarios';
