@@ -35,7 +35,7 @@ body { margin: 0; font-family: Inter, system-ui, -apple-system, 'Segoe UI', Robo
 
 /* rest ... */
 .hero { background: linear-gradient(90deg,#eef2ff,#f0fff4); padding:16px; border-radius:8px }
-.calendar-placeholder .cal-box { height:320px; border-radius:8px; border:1px dashed #cbd5e1; display:flex; align-items:center; justify-content:center; color:#64748b }
+.calendar-placeholder .cal-box { height:220px; border-radius:8px; border:1px dashed #cbd5e1; display:flex; align-items:center; justify-content:center; color:#64748b }
 .app-footer { padding:12px; text-align:center; color:#718096 }
 
 /* page layout helpers */
@@ -76,7 +76,7 @@ body { margin: 0; font-family: Inter, system-ui, -apple-system, 'Segoe UI', Robo
 .app-overlay { position: fixed; top:64px; left:0; right:0; bottom:0; background: rgba(2,6,23,0.28); z-index: 30; transition: opacity .18s ease; }
 
 /* data table */
-.table-wrap { max-height: 320px; overflow-x: auto; border-radius:10px; border:1px solid #e6eef8; background:#fff; width: 100%;   max-width: 100%; }
+.table-wrap { max-height: 220px; overflow-x: auto; border-radius:10px; border:1px solid #e6eef8; background:#fff; width: 100%;   max-width: 100%; }
 .data-table { width:100%; border-collapse:collapse; min-width:700px }
 .data-table th, .data-table td { padding:12px 14px; border-bottom:1px solid #f1f5f9; text-align:left }
 .data-table thead th { background:transparent; color:#475569; font-weight:700; font-size:13px }
@@ -129,7 +129,7 @@ body { margin: 0; font-family: Inter, system-ui, -apple-system, 'Segoe UI', Robo
 }
 
 /* on very small screens fine-tune width so it never fills entire viewport */
-@media(max-width:320px) {
+@media(max-width:220px) {
   .app-sidebar { width: min(65vw, 300px); max-width: 320px; right: 0; left: auto; }
   .page-header h2, .page h2 { white-space: normal }
 }
