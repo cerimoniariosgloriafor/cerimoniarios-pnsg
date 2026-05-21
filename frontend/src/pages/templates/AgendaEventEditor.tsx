@@ -136,12 +136,12 @@ export default function AgendaEventEditor({ predate, id }: { predate?: string, i
       <div className="page-header">
       </div>
 
-      <div style={{ padding: 12, display: 'flex', justifyContent: 'center' }}>
-        <div style={{ width: '100%', maxWidth: 820, background: '#fff', borderRadius: 8, boxShadow: '0 1px 3px rgba(0,0,0,0.08)', padding: 16 }}>
+      <div style={{ padding: 8, display: 'flex', justifyContent: 'center' }}>
+        <div style={{ width: '100%', maxWidth: 720, background: '#fff', borderRadius: 8, boxShadow: '0 1px 3px rgba(0,0,0,0.08)', padding: 12 }}>
 
-          <div style={{ marginBottom: 12 }}>
+          <div style={{ marginBottom: 8 }}>
             <h2 style={{ margin: 0 }}>Novo Evento</h2>
-            <div style={{ color: '#666', marginTop: 6 }}>Criação de evento/escala avulsa</div>
+            <div style={{ color: '#666', marginTop: 4 }}>Criação de evento/escala avulsa</div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, alignItems: 'center' }}>
@@ -179,26 +179,26 @@ export default function AgendaEventEditor({ predate, id }: { predate?: string, i
             <div>
               {assignedUsers.map((au, idx) => (
                 <div key={`${au.userId}-${idx}`} style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 6, padding: 8, border: '1px solid #f3f4f6', borderRadius: 6 }}>
-                  <div style={{ width: 220, fontWeight: 500 }}>{users.find(u => String(u._id) === String(au.userId))?.name || 'Usuário'}</div>
+                  <div style={{ width: 220, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{users.find(u => String(u._id) === String(au.userId))?.name || 'Usuário'}</div>
                   {(() => {
                     const roles = au.roles || [];
                     return (
-                      <div style={{ display: 'flex', gap: 12 }}>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <div style={{ display: 'flex', gap: 1 }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <input
                             type="checkbox"
                             checked={roles.includes('M.C')}
                             onChange={(e) => { e.stopPropagation(); toggleRole(idx, 'M.C'); }}
                           /> <span>M.C</span>
                         </label>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <input
                             type="checkbox"
                             checked={roles.includes('C.A')}
                             onChange={(e) => { e.stopPropagation(); toggleRole(idx, 'C.A'); }}
                           /> <span>C.A</span>
                         </label>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <input
                             type="checkbox"
                             checked={roles.includes('C.L')}

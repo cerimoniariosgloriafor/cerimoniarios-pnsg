@@ -142,8 +142,8 @@ body { margin: 0; font-family: Inter, system-ui, -apple-system, 'Segoe UI', Robo
 }
 
 /* editor page */
-.editor-page { max-width:1100px; margin:16px auto; padding:0 16px }
-.editor-card { background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:16px }
+.editor-page { max-width:980px; margin:8px auto; padding:0 12px }
+.editor-card { background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:12px }
 
 /* ensure delete action column stays visible on scroll (sticky right) */
 .data-table th:last-child,
