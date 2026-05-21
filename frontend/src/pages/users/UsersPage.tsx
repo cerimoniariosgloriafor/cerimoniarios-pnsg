@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import axios from 'axios';
 
-const PAGE_SIZE = 8;
+const PAGE_SIZE = 10;
 
 export default function UsersPage({ users, onCreated }: any) {
   const [query, setQuery] = useState('');

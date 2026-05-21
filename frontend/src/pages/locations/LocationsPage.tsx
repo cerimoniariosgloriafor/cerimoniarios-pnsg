@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import axios from 'axios';
 
-const PAGE_SIZE = 8;
+const PAGE_SIZE = 10;
 
 export default function LocationsPage({ locations, onCreated }: any) {
   const [query, setQuery] = useState('');
@@ -63,12 +63,12 @@ export default function LocationsPage({ locations, onCreated }: any) {
               <tbody>
                 {visible.map((l: any) => (
                   <tr key={l._id} onClick={() => openEdit(l._id)} style={{ cursor: 'pointer' }}>
-                    <td className="td-name">{l.name}</td>
-                    <td className="td-sub">{l.description || '— sem descrição —'}</td>
-                    <td className="td-id">{l._id?.slice?.(0,8)}</td>
+                    <td className="td-name"><span className="truncate">{l.name}</span></td>
+                    <td className="td-sub"><span className="truncate">{l.description || '— sem descrição —'}</span></td>
+                    <td className="td-id"><span className="truncate">{l._id?.slice?.(0,8)}</span></td>
                     <td className="td-actions">
                       <span style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                        <button className="action-btn danger" title="Remover" onClick={(e) => handleDelete(u  ._id, e)}>🗑️</button>
+                        <button className="action-btn danger" title="Remover" onClick={(e) => { e.stopPropagation(); handleDelete(l._id, e); }}>🗑️</button>
                       </span>
                     </td>
                   </tr>

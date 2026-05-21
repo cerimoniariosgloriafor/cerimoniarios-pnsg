@@ -67,7 +67,7 @@ body { margin: 0; font-family: Inter, system-ui, -apple-system, 'Segoe UI', Robo
 .btn.secondary { background:#fff; color:#0f172a; border:1px solid #e6eef8 }
 
 /* pagination */
-.pagination { display:flex; gap:8px; align-items:center; justify-content:flex-end; margin-top:12px; flex-wrap: wrap; }
+.pagination { display:flex; gap:8px; align-items:center; justify-content:flex-end; margin-top:8px; flex-wrap: wrap; }
 .page-btn { background:#fff; border:1px solid #e6eef8; padding:6px 10px; border-radius:8px; cursor:pointer; font-weight:600 }
 .page-btn:hover { background:#fafbff }
 .page-btn.active { background: linear-gradient(90deg,#eef2ff,#e6f0ff); border-color:#c7ddff; }
@@ -76,14 +76,20 @@ body { margin: 0; font-family: Inter, system-ui, -apple-system, 'Segoe UI', Robo
 .app-overlay { position: fixed; top:64px; left:0; right:0; bottom:0; background: rgba(2,6,23,0.28); z-index: 30; transition: opacity .18s ease; }
 
 /* data table */
-.table-wrap { max-height: 220px; overflow-x: auto; border-radius:10px; border:1px solid #e6eef8; background:#fff; width: 100%;   max-width: 100%; }
-.data-table { width:100%; border-collapse:collapse; min-width:700px }
-.data-table th, .data-table td { padding:12px 14px; border-bottom:1px solid #f1f5f9; text-align:left }
-.data-table thead th { background:transparent; color:#475569; font-weight:700; font-size:13px }
-.td-name { font-weight:700 }
-.td-sub { color:#64748b }
-.td-id { color:#94a3b8; font-family:monospace }
-.td-actions { text-align:right;  }
+.table-wrap { overflow-x: auto; border-radius:10px; border:1px solid #e6eef8; background:#fff; width: 100%; max-width: 100%; }
+.data-table { width:100%; border-collapse:collapse; min-width:0; table-layout: auto; }
+.data-table th, .data-table td { padding:10px 12px; border-bottom:1px solid #f1f5f9; text-align:left }
+.data-table td { vertical-align: middle; }
+
+/* truncate long text in table cells to avoid pushing layout on mobile */
+.data-table td, .data-table th { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.td-name { max-width: 18ch; }
+.td-sub { max-width: 25ch; color: #64748b; }
+.td-id { width: 12ch; font-family: monospace; color: #94a3b8 }
+.td-actions { width: 8ch; }
+
+/* ensure truncation preserves case and shows a few more chars */
+.data-table .truncate { display: inline-block; max-width: 100%; }
 .action-btn { background:#fff; border:1px solid #e6eef8; padding:6px 8px; border-radius:8px; cursor:pointer; font-weight:600 }
 .action-btn:hover { background:#fafbff }
 .action-btn.danger { border-color: #ffdada; color:#b91c1c }
@@ -124,7 +130,8 @@ body { margin: 0; font-family: Inter, system-ui, -apple-system, 'Segoe UI', Robo
   /* limit sidebar width on smaller screens so it doesn't occupy the whole viewport */
   .app-sidebar { width: min(60vw, 320px); order:2; right:0; left:0; }
   .app-main { order:1 }
-  .table-wrap { padding-bottom: 72px }
+  .table-wrap { max-height: none; padding-bottom: 72px }
+  .editor-card { min-height: 300px; }
   .fab { right: 16px }
 }
 
@@ -145,10 +152,10 @@ body { margin: 0; font-family: Inter, system-ui, -apple-system, 'Segoe UI', Robo
   right: 0;
   z-index: 2;
   background: #fff;
-  width: 44px;
   min-width: 44px;
-  max-width: 44px;
   padding: 4px;
+  white-space: nowrap;
+  text-align: right;
 }
 
 .data-table thead th:last-child {
