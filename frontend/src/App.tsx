@@ -63,6 +63,7 @@ export default function App() {
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [mustChangePassword, setMustChangePassword] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
+  const [dashboardEvents, setDashboardEvents] = useState<any[]>([]);
 
   // initialize authentication from sessionStorage (survive page reloads)
   useEffect(() => {
@@ -213,6 +214,34 @@ export default function App() {
   const onSaved = async () => { await fetchData(); navigate('/locations'); };
   const onUserSaved = async () => { await fetchData(); navigate('/users'); };
 
+  // load today's events for the dashboard filtered to the logged-in user
+  useEffect(() => {
+    if (!authUser || page !== 'dashboard') {
+      setDashboardEvents([]);
+      return;
+    }
+    const fetchMyEvents = async () => {
+      try {
+        const d = new Date();
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const date = `${y}-${m}-${day}`;
+        const res = await axios.get('/agenda-events', { params: { date } });
+        const items = res.data || [];
+        const mine = (items || []).filter((ev: any) => {
+          const users = ev.users || [];
+          return users.some((u: any) => String(u.userId?._id || u.userId) === String(authUser._id));
+        });
+        setDashboardEvents(mine);
+      } catch (err) {
+        console.error('load dashboard events', err);
+        setDashboardEvents([]);
+      }
+    };
+    fetchMyEvents();
+  }, [authUser, page]);
+
   // if showing the login page and not authenticated, render only the login card
   if (page === 'login' && !authLoading && !authUser) {
     return (
@@ -280,11 +309,30 @@ export default function App() {
                 <>
                   <section className="hero">
                     <h2>Dashboard</h2>
-                    <p>Bem-vindo ao sistema de escalas — por enquanto o calendário estará vazio enquanto não criarmos templates.</p>
+                    <p>Bem-vindo ao sistema de escalas — abaixo está sua escala para hoje.</p>
                   </section>
 
-                  <section className="calendar-placeholder">
-                    <div className="cal-box">Calendário (em breve)</div>
+                  <section style={{ marginTop: 12 }}>
+                    {dashboardEvents.length === 0 ? (
+                      <div style={{ color: '#666' }}>Nenhuma escala hoje para você. <button className="btn" onClick={() => navigate('/agenda')} style={{ marginLeft: 8 }}>Ver agenda</button></div>
+                    ) : (
+                      <div style={{ display: 'grid', gap: 8 }}>
+                        {dashboardEvents.map(ev => {
+                          const myUser = (ev.users || []).find((u: any) => String(u.userId?._id || u.userId) === String(authUser._id)) || {};
+                          return (
+                            <div key={ev._id} style={{ background: '#fff', padding: 12, borderRadius: 8, boxShadow: '0 1px 3px rgba(0,0,0,0.04)', display: 'flex', gap: 12, alignItems: 'center' }}>
+                              <div style={{ width: 90, fontWeight: 700 }}>{ev.time?.start || '—'}</div>
+                              <div style={{ flex: 1 }}>
+                                <div style={{ fontWeight: 600 }}>{ev.title || (ev.locationId?.name || 'Local não informado')}</div>
+                                <div style={{ color: '#666', fontSize: 13 }}>{ev.priestName ? `Padre: ${ev.priestName}` : ''} </div>
+                                <div style={{ marginTop: 6, fontSize: 13 }}><strong>Suas funções:</strong> {(myUser.roles || []).join(', ') || '—'}</div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                        <div style={{ marginTop: 8 }}><button className="btn" onClick={() => navigate('/agenda')}>Ver agenda completa</button></div>
+                      </div>
+                    )}
                   </section>
                 </>
               )}

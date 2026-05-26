@@ -6,12 +6,13 @@ const router = Router();
 
 router.post('/', async (req, res) => {
   try {
-    const { name, email, phone, password, mustChangePassword } = req.body;
+    const { name, email, phone, password, mustChangePassword, role } = req.body;
     if (!email && !phone) return res.status(400).json({ error: 'email or phone required' });
     if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return res.status(400).json({ error: 'invalid email' });
     if (phone && !/^[0-9+\-()\s]{6,}$/.test(phone)) return res.status(400).json({ error: 'invalid phone' });
 
-    const u = new User({ name, email, phone });
+    const roleVal = role === 'admin' ? 'admin' : 'servo';
+    const u = new User({ name, email, phone, role: roleVal });
     const mustChange = typeof mustChangePassword === 'boolean' ? mustChangePassword : (password ? false : true);
     if (password) {
       const hash = await bcrypt.hash(password, 10);
@@ -54,12 +55,16 @@ router.get('/:id', async (req, res) => {
 router.post('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, email, phone, password, mustChangePassword } = req.body;
+    const { name, email, phone, password, mustChangePassword, role } = req.body;
     if (!email && !phone) return res.status(400).json({ error: 'email or phone required' });
     if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return res.status(400).json({ error: 'invalid email' });
     if (phone && !/^[0-9+\-()\s]{6,}$/.test(phone)) return res.status(400).json({ error: 'invalid phone' });
 
     const update: any = { name, email, phone };
+    // if role provided, validate and include
+    if (typeof role === 'string') {
+      update.role = role === 'admin' ? 'admin' : 'servo';
+    }
     if (typeof mustChangePassword === 'boolean') update.mustChangePassword = mustChangePassword;
     if (password) {
       const hash = await bcrypt.hash(password, 10);

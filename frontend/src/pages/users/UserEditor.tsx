@@ -8,6 +8,7 @@ export default function UserEditor({ id, onSaved }: any) {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [role, setRole] = useState<'servo' | 'admin'>('servo');
   const [mustChangePassword, setMustChangePassword] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -22,6 +23,7 @@ export default function UserEditor({ id, onSaved }: any) {
       setName(data.name || '');
       setEmail(data.email || '');
       setPhone(formatPhone(data.phone || ''));
+      setRole(data.role || 'servo');
     }).catch(err => console.error('load user', err)).finally(() => setLoading(false));
     return () => { mounted = false };
   }, [id]);
@@ -45,7 +47,7 @@ export default function UserEditor({ id, onSaved }: any) {
 
     setSaving(true);
     try {
-      const payload: any = { name, email };
+      const payload: any = { name, email, role };
       if (phone) payload.phone = phoneDigits;
       if (password) payload.password = password;
       if (mustChangePassword) payload.mustChangePassword = true;
@@ -97,9 +99,13 @@ export default function UserEditor({ id, onSaved }: any) {
           <form onSubmit={submit}>
             <div className="form-row">
               <input className="input" placeholder="Nome" value={name} onChange={e => setName(e.target.value)} required />
-              <input className="input" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} />
+              <select className="input" value={role} onChange={e => setRole(e.target.value as any)}>
+                <option value="servo">Servo</option>
+                <option value="admin">Admin</option>
+              </select>
             </div>
             <div className="form-row">
+              <input className="input" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} />
               <input className="input" placeholder="(00) 00000-0000" value={phone} onChange={handlePhoneChange} inputMode="numeric" maxLength={15} />
             </div>
             <div className="form-row">

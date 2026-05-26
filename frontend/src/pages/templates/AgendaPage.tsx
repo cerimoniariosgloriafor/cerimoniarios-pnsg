@@ -87,9 +87,6 @@ export default function AgendaPage() {
       input?.focus();
       input?.click();
     }
-
-    // hide the input after a short delay (picker will remain open)
-    setTimeout(() => setPickerVisible(false), 300);
   };
 
   const onDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -145,6 +142,7 @@ export default function AgendaPage() {
               onChange={onDateChange}
               style={pickerVisible ? { display: 'inline-block' } : { position: 'absolute', left: -9999 }}
               aria-hidden={!pickerVisible}
+              onBlur={() => setPickerVisible(false)}
             />
           </div>
 

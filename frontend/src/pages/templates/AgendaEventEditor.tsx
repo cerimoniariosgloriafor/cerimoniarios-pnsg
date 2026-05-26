@@ -70,6 +70,10 @@ export default function AgendaEventEditor({ predate, id }: { predate?: string, i
   }, [id]);
 
   const onSelectTemplate = (tid: string) => {
+    if (!tid) {
+      setSelectedTemplateId(null);
+      return;
+    }
     setSelectedTemplateId(tid);
     const found = templates.find(t => t.template._id === tid)?.template;
     if (found) {
@@ -99,11 +103,11 @@ export default function AgendaEventEditor({ predate, id }: { predate?: string, i
         date,
         priestName,
         title,
-        templateId: selectedTemplateId,
         locationId,
         time: { start: timeStart },
         users: assignedUsers
       };
+      if (selectedTemplateId) payload.templateId = selectedTemplateId;
       let res;
       if (id) {
         res = await axios.post(`/agenda-events/${id}`, payload);

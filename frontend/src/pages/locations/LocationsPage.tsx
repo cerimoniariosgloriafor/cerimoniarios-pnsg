@@ -56,7 +56,6 @@ export default function LocationsPage({ locations, onCreated }: any) {
                 <tr>
                   <th>Nome</th>
                   <th>Descrição</th>
-                  <th style={{ width: 140 }}>ID</th>
                   <th style={{ width: 100, textAlign: 'right' }}>Ações</th>
                 </tr>
               </thead>
@@ -65,7 +64,6 @@ export default function LocationsPage({ locations, onCreated }: any) {
                   <tr key={l._id} onClick={() => openEdit(l._id)} style={{ cursor: 'pointer' }}>
                     <td className="td-name"><span className="truncate">{l.name}</span></td>
                     <td className="td-sub"><span className="truncate">{l.description || '— sem descrição —'}</span></td>
-                    <td className="td-id"><span className="truncate">{l._id?.slice?.(0,8)}</span></td>
                     <td className="td-actions">
                       <span style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                         <button className="action-btn danger" title="Remover" onClick={(e) => { e.stopPropagation(); handleDelete(l._id, e); }}>🗑️</button>
