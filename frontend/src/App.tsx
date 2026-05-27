@@ -64,6 +64,7 @@ export default function App() {
   const [mustChangePassword, setMustChangePassword] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
   const [dashboardEvents, setDashboardEvents] = useState<any[]>([]);
+  const isServo = !!(authUser && authUser.role === 'servo');
 
   // initialize authentication from sessionStorage (survive page reloads)
   useEffect(() => {
@@ -264,15 +265,19 @@ export default function App() {
         <aside className={`app-sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
           <div className="panel">
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <button className="nav-btn" onClick={() => navigate('/locations')}>
-                <span className="icon">⛪</span>
-                <span className="label">Locais</span>
-              </button>
+              {!isServo && (
+                <>
+                  <button className="nav-btn" onClick={() => navigate('/locations')}>
+                    <span className="icon">⛪</span>
+                    <span className="label">Locais</span>
+                  </button>
 
-              <button className="nav-btn" onClick={() => navigate('/users')}>
-                <span className="icon">👥</span>
-                <span className="label">Usuários</span>
-              </button>
+                  <button className="nav-btn" onClick={() => navigate('/users')}>
+                    <span className="icon">👥</span>
+                    <span className="label">Usuários</span>
+                  </button>
+                </>
+              )}
 
               <button className="nav-btn" onClick={() => navigate('/templates')}>
                 <span className="icon">🗓️</span>
