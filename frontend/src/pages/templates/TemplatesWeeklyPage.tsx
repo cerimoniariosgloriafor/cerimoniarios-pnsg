@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { useAuth } from '../../context/AuthContext';
 
 const WEEKDAYS = [
   { id: 1, label: 'SEGUNDA' },
@@ -13,6 +14,8 @@ const WEEKDAYS = [
 export default function TemplatesWeeklyPage() {
   const [templates, setTemplates] = useState<any[]>([]);
   const [selected, setSelected] = useState<number>(1); // default to Monday
+  const { user } = useAuth();
+  const isServo = user?.role === 'servo';
 
   useEffect(() => {
     let mounted = true;
@@ -72,7 +75,7 @@ export default function TemplatesWeeklyPage() {
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
           {itemsForDay.map(t => (
-            <div key={t._id} className="card square" onClick={() => openEditTemplate(t._id)} style={{ cursor: 'pointer' }}>
+            <div key={t._id} className="card square" onClick={isServo ? undefined : () => openEditTemplate(t._id)} style={{ cursor: isServo ? 'default' : 'pointer' }}>
               <div style={{ fontWeight: 700 }}>{t.locationId?.name || '— local —'}</div>
               <div style={{ color: '#64748b', marginTop: 6 }}>{t.time?.start || '—'}</div>
               <div style={{ marginTop: 10, display: 'flex', gap: 8, flexWrap: 'wrap' }}>

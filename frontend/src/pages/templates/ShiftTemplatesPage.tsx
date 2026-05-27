@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { useAuth } from '../../context/AuthContext';
 
 export default function ShiftTemplatesPage() {
   const [templates, setTemplates] = useState<any[]>([]);
+  const { user } = useAuth();
+  const isServo = user?.role === 'servo';
 
   const fetchTemplates = async () => {
     try {
@@ -66,7 +69,9 @@ export default function ShiftTemplatesPage() {
         </div>  
       </div>
 
-      <button className="fab" aria-label="Adicionar escala" onClick={openNew}>+</button>
+      {!isServo && (
+        <button className="fab" aria-label="Adicionar escala" onClick={openNew}>+</button>
+      )}
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { useAuth } from './context/AuthContext';
 import LocationsPage from './pages/locations/LocationsPage';
 import UsersPage from './pages/users/UsersPage';
 import LocationEditor from './pages/locations/LocationEditor';
@@ -59,63 +60,22 @@ export default function App() {
     return null;
   });
 
-  const [authUser, setAuthUser] = useState<any>(null);
-  const [accessToken, setAccessToken] = useState<string | null>(null);
-  const [mustChangePassword, setMustChangePassword] = useState(false);
-  const [authLoading, setAuthLoading] = useState(true);
+  const { user: authUser, loading: authLoading, mustChangePassword, login, logout, setUser, setMustChangePassword } = useAuth();
   const [dashboardEvents, setDashboardEvents] = useState<any[]>([]);
   const isServo = !!(authUser && authUser.role === 'servo');
 
-  // initialize authentication from sessionStorage (survive page reloads)
-  useEffect(() => {
-    const initAuth = async () => {
-      const tok = sessionStorage.getItem('accessToken');
-      if (!tok) {
-        setAuthLoading(false);
-        return;
-      }
-      axios.defaults.headers.common['Authorization'] = `Bearer ${tok}`;
-      try {
-        const r = await axios.get('/auth/me');
-        // /auth/me may return the user directly or { user }
-        const payload = r.data || {};
-        const user = payload.user || payload;
-        setAuthUser(user || null);
-        setAccessToken(tok);
-        setMustChangePassword(!!user?.mustChangePassword);
-      } catch (err) {
-        console.error('initAuth failed', err);
-        sessionStorage.removeItem('accessToken');
-        delete axios.defaults.headers.common['Authorization'];
-        setAuthUser(null);
-        setAccessToken(null);
-      } finally {
-        setAuthLoading(false);
-      }
-    };
-    initAuth();
-  }, []);
-
   const handleLogin = async (identity: string, password: string) => {
-    const res = await axios.post('/auth/login', { identity, password });
-    const { accessToken: token, user, mustChangePassword } = res.data || {};
-    if (token) {
-      // persist for this tab/session
-      sessionStorage.setItem('accessToken', token);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      setAccessToken(token);
+    try {
+      await login(identity, password);
+      navigate('/');
+    } catch (err) {
+      console.error('login failed', err);
+      throw err;
     }
-    setAuthUser(user || null);
-    setMustChangePassword(!!mustChangePassword);
-    navigate('/');
   };
 
   const handleLogout = async () => {
-    try { await axios.post('/auth/logout'); } catch {}
-    sessionStorage.removeItem('accessToken');
-    delete axios.defaults.headers.common['Authorization'];
-    setAuthUser(null);
-    setAccessToken(null);
+    try { await logout(); } catch {}
     navigate('/login');
   };
 

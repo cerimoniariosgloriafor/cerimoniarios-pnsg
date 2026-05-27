@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
+import { useAuth } from '../../context/AuthContext';
 
 function startOfIsoWeek(d: Date) {
   const date = new Date(d);
@@ -29,6 +30,8 @@ export default function AgendaPage() {
   const dateInputRef = useRef<HTMLInputElement | null>(null);
   const [templatesForDay, setTemplatesForDay] = useState<any[]>([]);
   const [eventsForDay, setEventsForDay] = useState<any[]>([]);
+  const { user } = useAuth();
+  const isServo = user?.role === 'servo';
 
   useEffect(() => {
     // keep baseWeek in sync with selected (useful for other features)
@@ -105,11 +108,6 @@ export default function AgendaPage() {
     return `${y}-${m}-${day}`;
   };
 
-  const openTemplateEdit = (id: string) => {
-    window.history.pushState({}, '', `/templates/${id}`);
-    window.dispatchEvent(new PopStateEvent('popstate'));
-  };
-
   const openEventEdit = (ev: any) => {
     if (!ev || !ev._id) return;
     window.history.pushState({}, '', `/agenda/${ev._id}`);
@@ -153,8 +151,15 @@ export default function AgendaPage() {
                 <h4 style={{ marginBottom: 8 }}>Agendas do dia</h4>
                 <div style={{ display: 'grid', gap: 8 }}>
                   {eventsForDay.map((ev: any) => (
-                    <div key={ev._id} className="card" style={{ padding: 12, cursor: 'pointer' }} onClick={() => openEventEdit(ev)}>
-                      <div style={{ fontWeight: 700 }}>{ev.title || ev.priestName || 'Evento'}</div>
+                    <div
+                      key={ev._id}
+                      className="card"
+                      style={{ padding: 12, cursor: isServo ? 'default' : 'pointer', pointerEvents: isServo ? 'none' : undefined }}
+                      onClick={() => openEventEdit(ev)}
+                      tabIndex={isServo ? -1 : 0}
+                      aria-disabled={isServo}
+                    >
+                       <div style={{ fontWeight: 700 }}>{ev.title || ev.priestName || 'Evento'}</div>
                       <div style={{ color: '#444', marginTop: 6, display: 'flex', gap: 8, alignItems: 'center' }}>
                         <div>{ev.locationId?.name || ''}</div>
                         {ev.time?.start && (<div style={{ color: '#666' }}>| {ev.time?.start}</div>)}
@@ -179,7 +184,9 @@ export default function AgendaPage() {
         </div>
       </div>
 
-      <button className="fab" aria-label="Adicionar evento" onClick={() => { window.history.pushState({}, '', '/agenda/new'); window.dispatchEvent(new PopStateEvent('popstate')); }}>+</button>
+      {!isServo && (
+        <button className="fab" aria-label="Adicionar evento" onClick={() => { window.history.pushState({}, '', '/agenda/new'); window.dispatchEvent(new PopStateEvent('popstate')); }}>+</button>
+      )}
     </div>
   );
 }

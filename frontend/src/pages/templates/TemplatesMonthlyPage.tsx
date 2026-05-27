@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { useAuth } from '../../context/AuthContext';
 
 const WEEKDAYS = [
   { id: 1, label: 'SEG' },
@@ -18,6 +19,8 @@ export default function TemplatesMonthlyPage() {
   const [selectedWeek, setSelectedWeek] = useState<number>(1); // default to 1ª semana
   const [viewMode, setViewMode] = useState<'byWeek'|'byDay'>('byWeek');
   const [selectedDayOfMonth, setSelectedDayOfMonth] = useState<number | null>(null);
+  const { user } = useAuth();
+  const isServo = user?.role === 'servo';
 
   useEffect(() => {
     let mounted = true;
@@ -104,7 +107,7 @@ export default function TemplatesMonthlyPage() {
                   <h3 style={{ margin: '6px 0' }}>{g.day.label.toUpperCase()} <span style={{ color:'#64748b', fontWeight:600, marginLeft:8 }}>({g.items.length})</span></h3>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
                     {g.items.map(t => (
-                      <div key={t._id} className="card square" onClick={() => openEditTemplate(t._id)} style={{ cursor: 'pointer' }}>
+                      <div key={t._id} className="card square" onClick={isServo ? undefined : () => openEditTemplate(t._id)} style={{ cursor: isServo ? 'default' : 'pointer' }}>
                         <div style={{ fontWeight: 700 }}>{t.locationId?.name || '— local —'}</div>
                         <div style={{ color: '#64748b', marginTop: 6 }}>{t.time?.start || '—'}</div>
                         <div style={{ marginTop: 10, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -142,7 +145,7 @@ export default function TemplatesMonthlyPage() {
                 return (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
                     {group.items.map(t => (
-                      <div key={t._id} className="card square" onClick={() => openEditTemplate(t._id)} style={{ cursor: 'pointer' }}>
+                      <div key={t._id} className="card square" onClick={isServo ? undefined : () => openEditTemplate(t._id)} style={{ cursor: isServo ? 'default' : 'pointer' }}>
                         <div style={{ fontWeight: 700 }}>{t.locationId?.name || '— local —'}</div>
                         <div style={{ color: '#64748b', marginTop: 6 }}>{t.time?.start || '—'}</div>
                         <div style={{ marginTop: 10, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
