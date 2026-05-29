@@ -5,6 +5,10 @@ import User from '../models/user';
 
 const router = Router();
 
+router.get('/health', (_req, res) => {
+  res.json({ ok: true, uptime: process.uptime(), now: Date.now() });
+});
+
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_jwt_secret';
 
 function signAccess(user: any) {
