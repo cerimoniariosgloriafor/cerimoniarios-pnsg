@@ -5,6 +5,7 @@ export default function UserEditor({ id, onSaved }: any) {
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState('');
   const [fullName, setFullName] = useState('');
+  const [note, setNote] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [birthDate, setBirthDate] = useState('');
@@ -29,6 +30,7 @@ export default function UserEditor({ id, onSaved }: any) {
       const data = res.data || {};
       setName(data.name || '');
       setFullName(data.fullName || '');
+      setNote(data.note || '');
       setEmail(data.email || '');
       setPhone(formatPhone(data.phone || ''));
       setRole(data.role || 'servo');
@@ -63,6 +65,7 @@ export default function UserEditor({ id, onSaved }: any) {
     try {
       const payload: any = { name, email, role };
       if (fullName) payload.fullName = fullName;
+      if (note) payload.note = note;
       if (birthDate) payload.birthDate = birthDate;
       if (address) payload.address = address;
       if (profession) payload.profession = profession;
@@ -146,6 +149,9 @@ export default function UserEditor({ id, onSaved }: any) {
             <div className="form-row">
               <input className="input" placeholder="Quais sacramentos possui" value={sacraments} onChange={e => setSacraments(e.target.value)} />
               <input className="input" placeholder="Outras pastorais" value={otherPastorals} onChange={e => setOtherPastorals(e.target.value)} />
+            </div>
+            <div className="form-row">
+              <textarea className="input" placeholder="Observação" value={note} onChange={e => setNote(e.target.value)} style={{ minHeight: 80 }} />
             </div>
             {id && (
               <div style={{ marginBottom: 8 }}>

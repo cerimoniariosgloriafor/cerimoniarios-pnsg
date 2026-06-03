@@ -11,6 +11,8 @@ const UserSchema = new Schema({
   sacraments: [{ type: String }],
   preferredCommunity: { type: String },
   otherPastorals: [{ type: String }],
+  note: { type: String },
+  order: { type: Number, default: 0 },
   role: { type: String, enum: ['servo','admin'], default: 'servo' },
   passwordHash: { type: String, select: false },
   mustChangePassword: { type: Boolean, default: false }

@@ -6,13 +6,16 @@ const router = Router();
 
 router.post('/', async (req, res) => {
   try {
-    const { name, fullName, birthDate, address, profession, sacraments, preferredCommunity, otherPastorals, email, phone, password, mustChangePassword, role } = req.body;
+    const { name, fullName, birthDate, address, profession, sacraments, preferredCommunity, otherPastorals, note, email, phone, password, mustChangePassword, role } = req.body;
     if (!email && !phone) return res.status(400).json({ error: 'email or phone required' });
     if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return res.status(400).json({ error: 'invalid email' });
     if (phone && !/^[0-9+\-()\s]{6,}$/.test(phone)) return res.status(400).json({ error: 'invalid phone' });
 
     const roleVal = role === 'admin' ? 'admin' : 'servo';
-    const u = new User({ name, fullName, birthDate: birthDate || undefined, address, profession, sacraments: sacraments || [], preferredCommunity, otherPastorals: otherPastorals || [], email, phone, role: roleVal });
+    // determine order: append to end
+    const maxOrderDoc = await User.findOne().sort({ order: -1 }).limit(1);
+    const nextOrder = (maxOrderDoc && typeof (maxOrderDoc as any).order === 'number') ? ((maxOrderDoc as any).order + 1) : 1;
+    const u = new User({ name, fullName, birthDate: birthDate || undefined, address, profession, sacraments: sacraments || [], preferredCommunity, otherPastorals: otherPastorals || [], note, email, phone, role: roleVal, order: nextOrder });
     const mustChange = typeof mustChangePassword === 'boolean' ? mustChangePassword : (password ? false : true);
     if (password) {
       const hash = await bcrypt.hash(password, 10);
@@ -31,9 +34,24 @@ router.post('/', async (req, res) => {
   }
 });
 
+// reorder endpoint: accept array of ids in desired order
+router.post('/reorder', async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!Array.isArray(ids)) return res.status(400).json({ error: 'ids array required' });
+    // update each user with its index+1
+    const ops = ids.map((id: string, idx: number) => ({ updateOne: { filter: { _id: id }, update: { $set: { order: idx + 1 } } } }));
+    await User.bulkWrite(ops as any);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('reorder error', err);
+    res.status(500).json({ error: 'failed to reorder users' });
+  }
+});
+
 router.get('/', async (req, res) => {
   try {
-    const list = await User.find();
+    const list = await User.find().sort({ order: 1, name: 1 });
     res.json(list);
   } catch (err) {
     res.status(500).json({ error: 'failed to fetch users' });
@@ -55,12 +73,12 @@ router.get('/:id', async (req, res) => {
 router.post('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, fullName, birthDate, address, profession, sacraments, preferredCommunity, otherPastorals, email, phone, password, mustChangePassword, role } = req.body;
+    const { name, fullName, birthDate, address, profession, sacraments, preferredCommunity, otherPastorals, note, email, phone, password, mustChangePassword, role } = req.body;
     if (!email && !phone) return res.status(400).json({ error: 'email or phone required' });
     if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return res.status(400).json({ error: 'invalid email' });
     if (phone && !/^[0-9+\-()\s]{6,}$/.test(phone)) return res.status(400).json({ error: 'invalid phone' });
 
-    const update: any = { name, fullName, birthDate: birthDate || undefined, address, profession, sacraments: sacraments || [], preferredCommunity, otherPastorals: otherPastorals || [], email, phone };
+    const update: any = { name, fullName, birthDate: birthDate || undefined, address, profession, sacraments: sacraments || [], preferredCommunity, otherPastorals: otherPastorals || [], note, email, phone };
     // if role provided, validate and include
     if (typeof role === 'string') {
       update.role = role === 'admin' ? 'admin' : 'servo';
