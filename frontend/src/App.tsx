@@ -64,6 +64,10 @@ export default function App() {
 
   const { user: authUser, loading: authLoading, mustChangePassword, login, logout, setUser, setMustChangePassword } = useAuth();
   const [dashboardEvents, setDashboardEvents] = useState<any[]>([]);
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [swipedId, setSwipedId] = useState<string | null>(null);
+  const [pointerStartX, setPointerStartX] = useState<number | null>(null);
   const isServo = !!(authUser && authUser.role === 'servo');
 
   const handleLogin = async (identity: string, password: string) => {
@@ -205,6 +209,57 @@ export default function App() {
     fetchMyEvents();
   }, [authUser, page]);
 
+  const handleTouchStart = (e: any, id: string) => {
+    setTouchStartX(e.touches?.[0]?.clientX ?? null);
+    setDraggingId(id);
+  };
+
+  const handleTouchMove = (e: any) => {
+    if (!draggingId || touchStartX === null) return;
+    const x = e.touches?.[0]?.clientX ?? null;
+    if (x === null) return;
+    const dx = x - touchStartX;
+    if (dx < -40) setSwipedId(draggingId);
+    if (dx > 40) setSwipedId(null);
+  };
+
+  const handleTouchEnd = () => { setTouchStartX(null); setDraggingId(null); };
+
+  const handlePointerDown = (e: any, id: string) => {
+    // support mouse and stylus
+    setPointerStartX(e.clientX ?? null);
+    setDraggingId(id);
+    try { (e.target as Element).setPointerCapture?.(e.pointerId); } catch (err) {}
+  };
+
+  const handlePointerMove = (e: any) => {
+    if (!draggingId || pointerStartX === null) return;
+    const x = e.clientX ?? null;
+    if (x === null) return;
+    const dx = x - pointerStartX;
+    if (dx < -40) setSwipedId(draggingId);
+    if (dx > 40) setSwipedId(null);
+  };
+
+  const handlePointerUp = (e?: any) => {
+    setPointerStartX(null);
+    setDraggingId(null);
+    try { (e?.target as Element)?.releasePointerCapture?.(e?.pointerId); } catch (err) {}
+  };
+
+  const openMaps = (address?: string) => {
+    if (!address) return alert('Endereço não disponível');
+    const q = encodeURIComponent(address);
+    // try Apple Maps first (iOS), then fallback to Google Maps
+    // Using location href for native maps; also open Google Maps after short delay as fallback
+    try {
+      window.location.href = `maps://maps.apple.com/?q=${q}`;
+      setTimeout(() => { window.open(`https://www.google.com/maps/search/?api=1&query=${q}`, '_blank'); }, 700);
+    } catch (err) {
+      window.open(`https://www.google.com/maps/search/?api=1&query=${q}`, '_blank');
+    }
+  };
+
   // if showing the login page and not authenticated, render only the login card
   if (page === 'login' && !authLoading && !authUser) {
     return (
@@ -305,14 +360,33 @@ export default function App() {
                           const myUser = (ev.users || []).find((u: any) => String(u.userId?._id || u.userId) === String(authUser._id)) || {};
                           const colorMap: any = { verde: '#16a34a', branco: '#e5e7eb', roxo: '#7c3aed', vermelho: '#dc2626' };
                           const borderColor = ev.color ? (colorMap[ev.color] || ev.color) : null;
+                          const addr = ev.locationId?.address || ev.locationAddress || ev.address;
                           return (
-                            <div key={ev._id} style={{ background: '#fff', padding: 12, borderRadius: 8, boxShadow: '0 1px 3px rgba(0,0,0,0.04)', display: 'flex', gap: 12, alignItems: 'center', borderLeft: borderColor ? `9px solid ${borderColor}` : undefined }}>
-                              <div style={{ width: 90, fontWeight: 700 }}>{ev.time?.start || '—'}</div>
-                              <div style={{ flex: 1 }}>
-                                <div style={{ fontWeight: 600 }}>{ev.title || (ev.locationId?.name || 'Local não informado')}</div>
-                                <div style={{ color: '#666', fontSize: 13 }}>{ev.priestName ? `${ev.priestName}` : ''} </div>
-                                <div style={{ marginTop: 6, fontSize: 13 }}><strong>Suas funções:</strong> {(myUser.roles || []).join(', ') || '—'}</div>
+                            <div key={ev._id} style={{ position: 'relative' }}>
+                              <div
+                                onTouchStart={(e) => handleTouchStart(e, ev._id)}
+                                onTouchMove={(e) => handleTouchMove(e)}
+                                onTouchEnd={() => handleTouchEnd()}
+                                onPointerDown={(e) => handlePointerDown(e, ev._id)}
+                                onPointerMove={(e) => handlePointerMove(e)}
+                                onPointerUp={(e) => handlePointerUp(e)}
+                                style={{
+                                  background: '#fff', padding: 12, borderRadius: 8, boxShadow: '0 1px 3px rgba(0,0,0,0.04)', display: 'flex', gap: 12, alignItems: 'center', borderLeft: borderColor ? `9px solid ${borderColor}` : undefined,
+                                  transform: swipedId === ev._id ? 'translateX(-84px)' : 'translateX(0)', transition: 'transform 180ms ease-out', touchAction: 'pan-y'
+                                }}
+                              >
+                                <div style={{ width: 90, fontWeight: 700 }}>{ev.time?.start || '—'}</div>
+                                <div style={{ flex: 1 }}>
+                                  <div style={{ fontWeight: 600 }}>{ev.title || (ev.locationId?.name || 'Local não informado')}</div>
+                                  <div style={{ color: '#666', fontSize: 13 }}>{ev.priestName ? `${ev.priestName}` : ''} </div>
+                                  <div style={{ marginTop: 6, fontSize: 13 }}><strong>Suas funções:</strong> {(myUser.roles || []).join(', ') || '—'}</div>
+                                </div>
                               </div>
+                              {swipedId === ev._id && (
+                                <div style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)' }}>
+                                  <button className="btn" onClick={() => { openMaps(addr); setSwipedId(null); }}>Mapa</button>
+                                </div>
+                              )}
                             </div>
                           );
                         })}

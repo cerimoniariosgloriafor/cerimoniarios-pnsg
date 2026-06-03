@@ -5,6 +5,7 @@ export default function LocationEditor({ id, onSaved }: any) {
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [address, setAddress] = useState('');
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -17,6 +18,7 @@ export default function LocationEditor({ id, onSaved }: any) {
       const data = res.data || {};
       setName(data.name || '');
       setDescription(data.description || '');
+      setAddress(data.address || '');
     }).catch(err => console.error('load location', err)).finally(() => setLoading(false));
     return () => { mounted = false };
   }, [id]);
@@ -30,8 +32,8 @@ export default function LocationEditor({ id, onSaved }: any) {
     e.preventDefault();
     setSaving(true);
     try {
-      if (id) await axios.post(`/locations/${id}`, { name, description });
-      else await axios.post('/locations', { name, description });
+      if (id) await axios.post(`/locations/${id}`, { name, description, address });
+      else await axios.post('/locations', { name, description, address });
       onSaved && onSaved();
       close();
     } catch (err) {
@@ -71,9 +73,12 @@ export default function LocationEditor({ id, onSaved }: any) {
               <input className="input" placeholder="Nome" value={name} onChange={e => setName(e.target.value)} required />
               <input className="input" placeholder="Descrição" value={description} onChange={e => setDescription(e.target.value)} />
             </div>
+            <div className="form-row">
+              <input className="input" placeholder="Endereço" value={address} onChange={e => setAddress(e.target.value)} />
+            </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <button className="btn" type="submit" disabled={saving}>{saving ? 'Salvando...' : (id ? 'Salvar' : 'Criar')}</button>
-              <button type="button" className="btn secondary" onClick={() => { setName(''); setDescription(''); }}>Limpar</button>
+              <button type="button" className="btn secondary" onClick={() => { setName(''); setDescription(''); setAddress(''); }}>Limpar</button>
             </div>
           </form>
         )}
