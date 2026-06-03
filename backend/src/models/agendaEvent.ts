@@ -9,6 +9,7 @@ const AgendaEventSchema = new Schema({
   date: { type: Date, required: true },
   templateId: { type: Types.ObjectId, ref: 'ShiftTemplate' },
   title: { type: String },
+  color: { type: String, enum: ['verde', 'branco', 'roxo', 'vermelho'] },
   priestName: { type: String, required: true },
   locationId: { type: Types.ObjectId, ref: 'Location' },
   time: { start: { type: String } },

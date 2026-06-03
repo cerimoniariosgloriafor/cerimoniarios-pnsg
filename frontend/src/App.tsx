@@ -284,12 +284,14 @@ export default function App() {
                       <div style={{ display: 'grid', gap: 8 }}>
                         {dashboardEvents.map(ev => {
                           const myUser = (ev.users || []).find((u: any) => String(u.userId?._id || u.userId) === String(authUser._id)) || {};
+                          const colorMap: any = { verde: '#16a34a', branco: '#e5e7eb', roxo: '#7c3aed', vermelho: '#dc2626' };
+                          const borderColor = ev.color ? (colorMap[ev.color] || ev.color) : null;
                           return (
-                            <div key={ev._id} style={{ background: '#fff', padding: 12, borderRadius: 8, boxShadow: '0 1px 3px rgba(0,0,0,0.04)', display: 'flex', gap: 12, alignItems: 'center' }}>
+                            <div key={ev._id} style={{ background: '#fff', padding: 12, borderRadius: 8, boxShadow: '0 1px 3px rgba(0,0,0,0.04)', display: 'flex', gap: 12, alignItems: 'center', borderLeft: borderColor ? `9px solid ${borderColor}` : undefined }}>
                               <div style={{ width: 90, fontWeight: 700 }}>{ev.time?.start || '—'}</div>
                               <div style={{ flex: 1 }}>
                                 <div style={{ fontWeight: 600 }}>{ev.title || (ev.locationId?.name || 'Local não informado')}</div>
-                                <div style={{ color: '#666', fontSize: 13 }}>{ev.priestName ? `Padre: ${ev.priestName}` : ''} </div>
+                                <div style={{ color: '#666', fontSize: 13 }}>{ev.priestName ? `${ev.priestName}` : ''} </div>
                                 <div style={{ marginTop: 6, fontSize: 13 }}><strong>Suas funções:</strong> {(myUser.roles || []).join(', ') || '—'}</div>
                               </div>
                             </div>

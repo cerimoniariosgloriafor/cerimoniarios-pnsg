@@ -13,6 +13,7 @@ export default function AgendaEventEditor({ predate, id }: { predate?: string, i
   const [assignedUsers, setAssignedUsers] = useState<Array<{ userId: string, roles: string[] }>>([]);
   const [priestName, setPriestName] = useState<string>('');
   const [title, setTitle] = useState<string>('');
+  const [color, setColor] = useState<string>('');
 
   useEffect(() => {
     (async () => {
@@ -58,6 +59,7 @@ export default function AgendaEventEditor({ predate, id }: { predate?: string, i
           setDate(`${y}-${m}-${day}`);
           setPriestName(ev.priestName || '');
           setTitle(ev.title || '');
+          setColor(ev.color || '');
           setLocationId(ev.locationId?._id || ev.locationId || null);
           setTimeStart(ev.time?.start || '');
           setAssignedUsers((ev.users || []).map((au: any) => ({ userId: au.userId?._id || au.userId, roles: au.roles || [] })));
@@ -103,6 +105,7 @@ export default function AgendaEventEditor({ predate, id }: { predate?: string, i
         date,
         priestName,
         title,
+        color,
         locationId,
         time: { start: timeStart },
         users: assignedUsers
@@ -148,7 +151,25 @@ export default function AgendaEventEditor({ predate, id }: { predate?: string, i
             <div style={{ color: '#666', marginTop: 4 }}>Criação de evento/escala avulsa</div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, alignItems: 'center' }}>
+          {/* Title and liturgical color first */}
+          <div style={{ marginTop: 12 }}>
+            <div style={{ fontWeight: 600, marginBottom: 6 }}>Título da Missa</div>
+            <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Ex: VERMELHO - Memória de São Carlos..." style={{ width: '100%', padding: 8, border: '1px solid #e5e7eb', borderRadius: 6 }} />
+          </div>
+
+          <div style={{ marginTop: 12 }}>
+            <div style={{ fontWeight: 600, marginBottom: 6 }}>Cor litúrgica</div>
+            <select value={color} onChange={e => setColor(e.target.value)} style={{ width: '100%', padding: 8, border: '1px solid #e5e7eb', borderRadius: 6 }}>
+              <option value="">-- sem cor --</option>
+              <option value="verde">Verde</option>
+              <option value="branco">Branco</option>
+              <option value="roxo">Roxo</option>
+              <option value="vermelho">Vermelho</option>
+            </select>
+          </div>
+
+          {/* Date and time follow */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, alignItems: 'center', marginTop: 12 }}>
             <div>
               <div style={{ fontWeight: 600, marginBottom: 6 }}>Data</div>
               <input type="date" value={date} onChange={e => setDate(e.target.value)} style={{ width: '100%', padding: 8, border: '1px solid #e5e7eb', borderRadius: 6 }} />
@@ -191,22 +212,22 @@ export default function AgendaEventEditor({ predate, id }: { predate?: string, i
                          <label style={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                            <input
                              type="checkbox"
-                             checked={roles.includes('M.C')}
-                             onChange={(e) => { e.stopPropagation(); toggleRole(idx, 'M.C'); }}
-                           /> <span>M.C</span>
+                             checked={roles.includes('M.C.')}
+                             onChange={(e) => { e.stopPropagation(); toggleRole(idx, 'M.C.'); }}
+                           /> <span>M.C.</span>
                          </label>
                          <label style={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                            <input
                              type="checkbox"
-                             checked={roles.includes('C.A')}
-                             onChange={(e) => { e.stopPropagation(); toggleRole(idx, 'C.A'); }}
-                           /> <span>C.A</span>
+                             checked={roles.includes('C.A.')}
+                             onChange={(e) => { e.stopPropagation(); toggleRole(idx, 'C.A.'); }}
+                           /> <span>C.A.</span>
                          </label>
                          <label style={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                            <input
                              type="checkbox"
-                             checked={roles.includes('C.L')}
-                             onChange={(e) => { e.stopPropagation(); toggleRole(idx, 'C.L'); }}
+                             checked={roles.includes('C.L.')}
+                             onChange={(e) => { e.stopPropagation(); toggleRole(idx, 'C.L.'); }}
                            /> <span>C.L</span>
                          </label>
                        </div>

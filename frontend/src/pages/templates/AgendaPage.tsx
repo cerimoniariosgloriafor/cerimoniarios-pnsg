@@ -26,6 +26,7 @@ export default function AgendaPage() {
   const today = new Date();
   const [baseWeek, setBaseWeek] = useState<Date>(() => startOfIsoWeek(today));
   const [selected, setSelected] = useState<Date>(() => new Date(today));
+  const [selectedLocation, setSelectedLocation] = useState<string>('');
   const [pickerVisible, setPickerVisible] = useState(false);
   const dateInputRef = useRef<HTMLInputElement | null>(null);
   const [templatesForDay, setTemplatesForDay] = useState<any[]>([]);
@@ -150,30 +151,90 @@ export default function AgendaPage() {
               <div style={{ marginTop: 12 }}>
                 <h4 style={{ marginBottom: 8 }}>Agendas do dia</h4>
                 <div style={{ display: 'grid', gap: 8 }}>
-                  {eventsForDay.map((ev: any) => (
-                    <div
-                      key={ev._id}
-                      className="card"
-                      style={{ padding: 12, cursor: isServo ? 'default' : 'pointer', pointerEvents: isServo ? 'none' : undefined }}
-                      onClick={() => openEventEdit(ev)}
-                      tabIndex={isServo ? -1 : 0}
-                      aria-disabled={isServo}
-                    >
-                       <div style={{ fontWeight: 700 }}>{ev.title || ev.priestName || 'Evento'}</div>
-                      <div style={{ color: '#444', marginTop: 6, display: 'flex', gap: 8, alignItems: 'center' }}>
-                        <div>{ev.locationId?.name || ''}</div>
-                        {ev.time?.start && (<div style={{ color: '#666' }}>| {ev.time?.start}</div>)}
+                  {(() => {
+                    const locs: Array<{ id: string, name: string }> = [];
+                    const seen = new Set<string>();
+                    (eventsForDay || []).forEach((ev: any) => {
+                      const lid = ev.locationId?._id || ev.locationId;
+                      const lname = ev.locationId?.name || (ev.locationId && String(ev.locationId)) || '—';
+                      if (lid && !seen.has(String(lid))) { seen.add(String(lid)); locs.push({ id: String(lid), name: lname }); }
+                    });
+                    return (
+                      <div style={{ marginBottom: 8, display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <label style={{ color: '#444', fontWeight: 600, fontSize: 13 }}>Filtrar por local:</label>
+                        <select value={selectedLocation} onChange={e => setSelectedLocation(e.target.value)} style={{ padding: 6, border: '1px solid #e5e7eb', borderRadius: 6, fontSize: 13 }} aria-label="Filtrar por local">
+                          <option value="">-- Todos os locais --</option>
+                          {locs.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                        </select>
                       </div>
-                      <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                        {(ev.users || []).map((au: any, i: number) => (
-                          <div key={i} style={{ background: '#f3f4f6', padding: '4px 8px', borderRadius: 6 }}>{au.userId?.name || 'Usuário' + i} {au.roles && au.roles.length ? `(${au.roles.join(',')})` : ''}</div>
-                        ))}
+                    );
+                  })()}
+
+                  {(() => {
+                    const filteredEvents = selectedLocation ? (eventsForDay || []).filter((ev: any) => String(ev.locationId?._id || ev.locationId) === String(selectedLocation)) : (eventsForDay || []);
+                    return filteredEvents.map((ev: any) => {
+                      const colorMap: any = { verde: '#16a34a', branco: '#e5e7eb', roxo: '#7c3aed', vermelho: '#dc2626' };
+                      const borderColor = ev.color ? (colorMap[ev.color] || ev.color) : null;
+                      return (
+                      <div
+                        key={ev._id}
+                        className="card"
+                        style={{
+                          padding: 12,
+                          cursor: isServo ? 'default' : 'pointer',
+                          pointerEvents: isServo ? 'none' : undefined,
+                          borderLeft: borderColor ? `9px solid ${borderColor}` : undefined,
+                          borderRadius: 8,
+                          background: ev.color === 'branco' ? '#fff' : undefined
+                        }}
+                        onClick={() => openEventEdit(ev)}
+                        tabIndex={isServo ? -1 : 0}
+                        aria-disabled={isServo}
+                      >
+                        <div style={{ fontWeight: 700 }}>
+                          {ev.title ? (ev.title.length > 60 ? ev.title.slice(0, 57) + '...' : ev.title) : 'Evento'}
+                        </div>
+                        {ev.priestName ? (
+                          <div style={{ color: '#444', marginTop: 6, fontSize: 14 }}>{ev.priestName}</div>
+                        ) : null}
+                        <div style={{ color: '#444', marginTop: 6, display: 'flex', gap: 8, alignItems: 'center', fontSize: 14 }}>
+                          <div>{ev.locationId?.name || ''}</div>
+                          {ev.time?.start && (<div style={{ color: '#666' }}>| {ev.time?.start}</div>)}
+                        </div>
+                       <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          {(() => {
+                            const roleOrder = ['M.C.','C.A.','C.L.'];
+                            const map: Record<string, string[]> = {};
+                            (ev.users || []).forEach((au: any) => {
+                              const name = au.userId?.name || 'Usuário';
+                              (au.roles || []).forEach((r: string) => {
+                                if (!map[r]) map[r] = [];
+                                map[r].push(name);
+                              });
+                            });
+                            const elems: any[] = [];
+                            roleOrder.forEach(r => {
+                              const list = map[r] || [];
+                              list.forEach((name, idx) => {
+                                elems.push(
+                                  <div key={`${r}-${idx}`} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                                    <div style={{ width: 36, fontWeight: 600, textAlign: 'right' }}>{r}</div>
+                                    <div style={{ color: '#000000ff', margin: '0 1px' }}>|</div>
+                                    <div>{name}</div>
+                                  </div>
+                                );
+                              });
+                            });
+                            return elems;
+                          })()}
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+                      );
+                    });
+                  })()}
+                 </div>
+               </div>
+             )}
 
             {eventsForDay.length === 0 && (
               <div style={{ color: '#666' }}>
