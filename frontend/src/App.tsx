@@ -378,6 +378,7 @@ export default function App() {
                                 <div style={{ width: 90, fontWeight: 700 }}>{ev.time?.start || '—'}</div>
                                 <div style={{ flex: 1 }}>
                                   <div style={{ fontWeight: 600 }}>{ev.title || (ev.locationId?.name || 'Local não informado')}</div>
+                                  <div style={{ color: '#666', fontSize: 13 }}>{ev.locationId?.name ? `${ev.locationId?.name}` : ''} </div>
                                   <div style={{ color: '#666', fontSize: 13 }}>{ev.priestName ? `${ev.priestName}` : ''} </div>
                                   <div style={{ marginTop: 6, fontSize: 13 }}><strong>Suas funções:</strong> {(myUser.roles || []).join(', ') || '—'}</div>
                                 </div>
