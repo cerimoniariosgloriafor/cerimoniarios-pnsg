@@ -181,7 +181,7 @@ export default function App() {
   const onSaved = async () => { await fetchData(); navigate('/locations'); };
   const onUserSaved = async () => { await fetchData(); navigate('/users'); };
 
-  // load today's events for the dashboard filtered to the logged-in user
+  // load today's and upcoming events for the dashboard filtered to the logged-in user
   useEffect(() => {
     if (!authUser || page !== 'dashboard') {
       setDashboardEvents([]);
@@ -193,13 +193,24 @@ export default function App() {
         const y = d.getFullYear();
         const m = String(d.getMonth() + 1).padStart(2, '0');
         const day = String(d.getDate()).padStart(2, '0');
-        const date = `${y}-${m}-${day}`;
-        const res = await axios.get('/agenda-events', { params: { date } });
+        const startDate = `${y}-${m}-${day}`;
+        const res = await axios.get('/agenda-events', { params: { startDate } });
         const items = res.data || [];
         const mine = (items || []).filter((ev: any) => {
           const users = ev.users || [];
           return users.some((u: any) => String(u.userId?._id || u.userId) === String(authUser._id));
         });
+        
+        // Sort by date then by time
+        mine.sort((a: any, b: any) => {
+          const dateA = new Date(a.date).getTime();
+          const dateB = new Date(b.date).getTime();
+          if (dateA !== dateB) return dateA - dateB;
+          const timeA = a.time?.start || '00:00';
+          const timeB = b.time?.start || '00:00';
+          return timeA.localeCompare(timeB);
+        });
+        
         setDashboardEvents(mine);
       } catch (err) {
         console.error('load dashboard events', err);
@@ -347,51 +358,94 @@ export default function App() {
                 <>
                   <section className="hero">
                     <h2>Dashboard</h2>
-                    <p>Bem-vindo ao sistema de escalas — abaixo está sua escala para hoje.</p>
-                    <div style={{ color: '#64748b', marginTop: 8 }}>{(() => { const parts = new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo', weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' }).formatToParts(new Date()); const weekdayLong = (parts.find(p => p.type === 'weekday')?.value || ''); const day = parts.find(p => p.type === 'day')?.value || ''; const month = parts.find(p => p.type === 'month')?.value || ''; const year = parts.find(p => p.type === 'year')?.value || ''; const weekdayShort = weekdayLong.replace(/-feira/gi, '').replace(/ feira/gi, '').replace(/feira/gi, ''); const weekdayCap = weekdayShort ? (weekdayShort.charAt(0).toUpperCase() + weekdayShort.slice(1)) : ''; return `${weekdayCap} - ${day}/${month}/${year}`; })()}</div>
+                    <p>Bem-vindo ao sistema de escalas — abaixo estão seus próximos serviços.</p>
                   </section>
 
                   <section style={{ marginTop: 12 }}>
                     {dashboardEvents.length === 0 ? (
-                      <div style={{ color: '#666' }}>Nenhuma escala hoje para você. <button className="btn" onClick={() => navigate('/agenda')} style={{ marginLeft: 8 }}>Ver agenda</button></div>
+                      <div style={{ color: '#666' }}>Nenhuma escala para você nos próximos dias. <button className="btn" onClick={() => navigate('/agenda')} style={{ marginLeft: 8 }}>Ver agenda</button></div>
                     ) : (
-                      <div style={{ display: 'grid', gap: 8 }}>
-                        {dashboardEvents.map(ev => {
-                          const myUser = (ev.users || []).find((u: any) => String(u.userId?._id || u.userId) === String(authUser._id)) || {};
-                          const colorMap: any = { verde: '#16a34a', branco: '#e5e7eb', roxo: '#7c3aed', vermelho: '#dc2626' };
-                          const borderColor = ev.color ? (colorMap[ev.color] || ev.color) : null;
-                          const addr = ev.locationId?.address || ev.locationAddress || ev.address;
-                          return (
-                            <div key={ev._id} style={{ position: 'relative' }}>
-                              <div
-                                onTouchStart={(e) => handleTouchStart(e, ev._id)}
-                                onTouchMove={(e) => handleTouchMove(e)}
-                                onTouchEnd={() => handleTouchEnd()}
-                                onPointerDown={(e) => handlePointerDown(e, ev._id)}
-                                onPointerMove={(e) => handlePointerMove(e)}
-                                onPointerUp={(e) => handlePointerUp(e)}
-                                style={{
-                                  background: '#fff', padding: 12, borderRadius: 8, boxShadow: '0 1px 3px rgba(0,0,0,0.04)', display: 'flex', gap: 12, alignItems: 'center', borderLeft: borderColor ? `9px solid ${borderColor}` : undefined,
-                                  transform: swipedId === ev._id ? 'translateX(-84px)' : 'translateX(0)', transition: 'transform 180ms ease-out', touchAction: 'pan-y'
-                                }}
-                              >
-                                <div style={{ width: 90, fontWeight: 700 }}>{ev.time?.start || '—'}</div>
-                                <div style={{ flex: 1 }}>
-                                  <div style={{ fontWeight: 600 }}>{ev.title || (ev.locationId?.name || 'Local não informado')}</div>
-                                  <div style={{ color: '#666', fontSize: 13 }}>{ev.locationId?.name ? `${ev.locationId?.name}` : ''} </div>
-                                  <div style={{ color: '#666', fontSize: 13 }}>{ev.priestName ? `${ev.priestName}` : ''} </div>
-                                  <div style={{ marginTop: 6, fontSize: 13 }}><strong>Suas funções:</strong> {(myUser.roles || []).join(', ') || '—'}</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+                        {(() => {
+                          const grouped = dashboardEvents.reduce((acc: any, ev: any) => {
+                            const dateStr = new Date(ev.date).toISOString().slice(0, 10);
+                            if (!acc[dateStr]) acc[dateStr] = [];
+                            acc[dateStr].push(ev);
+                            return acc;
+                          }, {});
+                          
+                          return Object.keys(grouped).sort().map(dateStr => {
+                            const [y, m, d] = dateStr.split('-');
+                            const dateObj = new Date(parseInt(y), parseInt(m)-1, parseInt(d));
+                            const parts = new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo', weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' }).formatToParts(dateObj);
+                            const weekdayLong = (parts.find(p => p.type === 'weekday')?.value || '');
+                            const day = parts.find(p => p.type === 'day')?.value || '';
+                            const month = parts.find(p => p.type === 'month')?.value || '';
+                            const year = parts.find(p => p.type === 'year')?.value || '';
+                            const weekdayShort = weekdayLong.replace(/-feira/gi, '').replace(/ feira/gi, '').replace(/feira/gi, '');
+                            const weekdayCap = weekdayShort ? (weekdayShort.charAt(0).toUpperCase() + weekdayShort.slice(1)) : '';
+                            
+                            const isToday = new Date().toISOString().slice(0, 10) === dateStr;
+                            
+                            return (
+                              <div key={dateStr} style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                                  <div style={{ background: isToday ? '#2563eb' : '#475569', color: '#fff', borderRadius: '8px', padding: '8px 12px', textAlign: 'center', minWidth: 64 }}>
+                                    <div style={{ fontSize: 24, fontWeight: 800, lineHeight: 1 }}>{day}</div>
+                                    <div style={{ fontSize: 11, textTransform: 'uppercase', fontWeight: 600, marginTop: 2, opacity: 0.9 }}>{month}/{year.slice(2)}</div>
+                                  </div>
+                                  <div>
+                                    <div style={{ fontWeight: 700, fontSize: 18, color: '#0f172a' }}>{weekdayCap}</div>
+                                    {isToday && <div style={{ color: '#2563eb', fontWeight: 600, fontSize: 14 }}>Hoje</div>}
+                                  </div>
+                                </div>
+                                
+                                <div style={{ display: 'grid', gap: 12 }}>
+                                  {grouped[dateStr].map((ev: any) => {
+                                    const myUser = (ev.users || []).find((u: any) => String(u.userId?._id || u.userId) === String(authUser._id)) || {};
+                                    const colorMap: any = { verde: '#16a34a', branco: '#e5e7eb', roxo: '#7c3aed', vermelho: '#dc2626' };
+                                    const borderColor = ev.color ? (colorMap[ev.color] || ev.color) : null;
+                                    const addr = ev.locationId?.address || ev.locationAddress || ev.address;
+                                    return (
+                                      <div key={ev._id} style={{ position: 'relative' }}>
+                                        <div
+                                          onTouchStart={(e) => handleTouchStart(e, ev._id)}
+                                          onTouchMove={(e) => handleTouchMove(e)}
+                                          onTouchEnd={() => handleTouchEnd()}
+                                          onPointerDown={(e) => handlePointerDown(e, ev._id)}
+                                          onPointerMove={(e) => handlePointerMove(e)}
+                                          onPointerUp={(e) => handlePointerUp(e)}
+                                          style={{
+                                            background: '#fff', padding: 12, borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.05)', display: 'flex', gap: 12, alignItems: 'center', borderLeft: borderColor ? `9px solid ${borderColor}` : '1px solid #e2e8f0',
+                                            transform: swipedId === ev._id ? 'translateX(-84px)' : 'translateX(0)', transition: 'transform 180ms ease-out', touchAction: 'pan-y'
+                                          }}
+                                        >
+                                          <div style={{ width: 60, fontWeight: 700, fontSize: 16, color: '#334155' }}>{ev.time?.start || '—'}</div>
+                                          <div style={{ flex: 1, borderLeft: '1px solid #f1f5f9', paddingLeft: 12 }}>
+                                            <div style={{ fontWeight: 600, color: '#1e293b' }}>{ev.title || (ev.locationId?.name || 'Local não informado')}</div>
+                                            <div style={{ color: '#64748b', fontSize: 13, marginTop: 2 }}>{ev.locationId?.name ? `${ev.locationId?.name}` : ''} </div>
+                                            <div style={{ color: '#64748b', fontSize: 13 }}>{ev.priestName ? `Presidida por ${ev.priestName}` : ''} </div>
+                                            <div style={{ marginTop: 6, fontSize: 13 }}>
+                                              <span style={{ background: '#e0e7ff', color: '#0f172a', padding: '2px 6px', borderRadius: 4, fontWeight: 500 }}>
+                                                {(myUser.roles || []).join(', ') || 'Sem função'}
+                                              </span>
+                                            </div>
+                                          </div>
+                                        </div>
+                                        {swipedId === ev._id && (
+                                          <div style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)' }}>
+                                            <button className="btn" onClick={() => { openMaps(addr); setSwipedId(null); }}>Mapa</button>
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
                                 </div>
                               </div>
-                              {swipedId === ev._id && (
-                                <div style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)' }}>
-                                  <button className="btn" onClick={() => { openMaps(addr); setSwipedId(null); }}>Mapa</button>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                        <div style={{ marginTop: 8 }}><button className="btn" onClick={() => navigate('/agenda')}>Ver agenda completa</button></div>
+                            );
+                          });
+                        })()}
+                        <div style={{ marginTop: 8 }}><button className="btn secondary" onClick={() => navigate('/agenda')} style={{ width: '100%', justifyContent: 'center' }}>Ver agenda completa</button></div>
                       </div>
                     )}
                   </section>

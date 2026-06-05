@@ -34,6 +34,8 @@ router.get('/', async (req, res) => {
   try {
     const AgendaEvent = require('../models/agendaEvent').default;
     const dateStr = (req.query.date || '').toString();
+    const startDateStr = (req.query.startDate || '').toString();
+
     if (dateStr) {
       const parts = dateStr.split('-').map((p: string) => parseInt(p, 10));
       if (parts.length < 3 || parts.some(p => isNaN(p))) return res.status(400).json({ error: 'invalid date' });
@@ -41,6 +43,15 @@ router.get('/', async (req, res) => {
       const start = new Date(d); start.setHours(0,0,0,0);
       const end = new Date(d); end.setHours(23,59,59,999);
       const list = await AgendaEvent.find({ date: { $gte: start, $lte: end } }).populate('locationId').populate('users.userId');
+      return res.json(list);
+    }
+    
+    if (startDateStr) {
+      const parts = startDateStr.split('-').map((p: string) => parseInt(p, 10));
+      if (parts.length < 3 || parts.some(p => isNaN(p))) return res.status(400).json({ error: 'invalid startDate' });
+      const d = new Date(parts[0], parts[1] - 1, parts[2]);
+      const start = new Date(d); start.setHours(0,0,0,0);
+      const list = await AgendaEvent.find({ date: { $gte: start } }).sort({ date: 1, 'time.start': 1 }).populate('locationId').populate('users.userId');
       return res.json(list);
     }
     const listAll = await AgendaEvent.find().populate('locationId').populate('users.userId');
