@@ -119,9 +119,13 @@ export default function AgendaEventEditor({ predate, id }: { predate?: string, i
       }
       window.history.pushState({}, '', '/agenda');
       window.dispatchEvent(new PopStateEvent('popstate'));
-    } catch (err) {
+    } catch (err: any) {
       console.error('create/update event', err);
-      alert('falha ao salvar evento');
+      if (err.response && err.response.data && err.response.data.error) {
+        alert(err.response.data.error);
+      } else {
+        alert('falha ao salvar evento');
+      }
     }
   };
 
@@ -200,7 +204,23 @@ export default function AgendaEventEditor({ predate, id }: { predate?: string, i
           </div>
 
           <div style={{ marginTop: 12 }}>
-            <div style={{ fontWeight: 600, marginBottom: 6 }}>Usuários (atribuir funções)</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <div style={{ fontWeight: 600 }}>Usuários (atribuir funções)</div>
+              <button 
+                type="button" 
+                onClick={() => {
+                  if (!confirm('Deseja adicionar todos os usuários ativos que ainda não estão na lista?')) return;
+                  const currentIds = new Set(assignedUsers.map(au => String(au.userId)));
+                  const newUsers = users
+                    .filter(u => !u.archived && (!u.suspendedUntil || new Date(u.suspendedUntil) <= new Date()) && !currentIds.has(String(u._id)))
+                    .map(u => ({ userId: u._id, roles: [] }));
+                  setAssignedUsers(prev => [...prev, ...newUsers]);
+                }}
+                style={{ fontSize: 12, padding: '4px 8px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: 4, cursor: 'pointer', color: '#334155' }}
+              >
+                Adicionar Todos Ativos
+              </button>
+            </div>
             <div className="assigned-users-list">
                {assignedUsers.map((au, idx) => (
                  <div key={`${au.userId}-${idx}`} style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 6, padding: 8, border: '1px solid #f3f4f6', borderRadius: 6 }}>

@@ -361,6 +361,16 @@ export default function App() {
                     <p>Bem-vindo ao sistema de escalas — abaixo estão seus próximos serviços.</p>
                   </section>
 
+                  {authUser?.suspendedUntil && new Date(authUser.suspendedUntil) > new Date() && (
+                    <div style={{ margin: '16px 0', padding: 16, backgroundColor: '#fef2f2', border: '1px solid #f87171', borderRadius: 8, color: '#b91c1c', display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <span style={{ fontSize: 24 }}>⛔</span>
+                      <div>
+                        <strong>Você está suspenso até o dia {new Date(authUser.suspendedUntil).toLocaleDateString('pt-BR')}</strong>
+                        <div style={{ fontSize: 13, marginTop: 4 }}>Durante este período, você foi removido de todas as escalas e não poderá ser escalado.</div>
+                      </div>
+                    </div>
+                  )}
+
                   <section style={{ marginTop: 12 }}>
                     {dashboardEvents.length === 0 ? (
                       <div style={{ color: '#666' }}>Nenhuma escala para você nos próximos dias. <button className="btn" onClick={() => navigate('/agenda')} style={{ marginLeft: 8 }}>Ver agenda</button></div>

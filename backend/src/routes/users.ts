@@ -113,6 +113,54 @@ router.post('/:id/toggle-archive', async (req, res) => {
   }
 });
 
+router.post('/:id/suspend', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { days } = req.body;
+    const user = await User.findById(id);
+    if (!user) return res.status(404).json({ error: 'user not found' });
+
+    let suspendedUntil = null;
+    if (typeof days === 'number' && days > 0) {
+      suspendedUntil = new Date();
+      suspendedUntil.setDate(suspendedUntil.getDate() + days);
+      // set to end of day to cover the entire last day
+      suspendedUntil.setHours(23, 59, 59, 999);
+    } else if (days === 0 || days === null) {
+      // Clear suspension
+      suspendedUntil = null;
+    } else {
+      return res.status(400).json({ error: 'Invalid days parameter' });
+    }
+
+    (user as any).suspendedUntil = suspendedUntil;
+    await user.save();
+
+    // If suspended, remove from upcoming events within the suspension period
+    if (suspendedUntil) {
+      const AgendaEvent = require('../models/agendaEvent').default;
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
+      
+      // Find all events between now and suspendedUntil where this user is assigned
+      await AgendaEvent.updateMany(
+        { 
+          date: { $gte: now, $lte: suspendedUntil },
+          'users.userId': user._id
+        },
+        { 
+          $pull: { users: { userId: user._id } } 
+        }
+      );
+    }
+
+    res.json({ success: true, suspendedUntil: (user as any).suspendedUntil });
+  } catch (err) {
+    console.error('suspend user error', err);
+    res.status(500).json({ error: 'failed to suspend user', details: (err as any)?.message });
+  }
+});
+
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;

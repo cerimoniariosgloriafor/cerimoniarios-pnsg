@@ -1,6 +1,21 @@
 import { Router } from 'express';
 const router = Router();
 
+// Helper to check for suspended users
+async function checkSuspendedUsers(users: any[], eventDate: Date) {
+  if (!users || !users.length) return null;
+  const User = require('../models/user').default;
+  const userIds = users.map(u => u.userId);
+  const foundUsers = await User.find({ _id: { $in: userIds } });
+  
+  for (const user of foundUsers) {
+    if (user.suspendedUntil && new Date(user.suspendedUntil) >= eventDate) {
+      return user.name; // Return the name of the suspended user
+    }
+  }
+  return null;
+}
+
 router.post('/', async (req, res) => {
   try {
     const AgendaEvent = require('../models/agendaEvent').default;
@@ -18,6 +33,18 @@ router.post('/', async (req, res) => {
     // ensure the stored date is normalized to local midnight to avoid UTC shifts
     if (body.date && body.date instanceof Date && !isNaN(body.date.getTime())) {
       body.date.setHours(0,0,0,0);
+    }
+
+    // Check for suspended users
+    if (body.users) {
+      const suspendedName = await checkSuspendedUsers(body.users, body.date);
+      if (suspendedName) {
+        return res.status(400).json({ error: `Usuário ${suspendedName} está suspenso e não pode ser escalado nesta data.` });
+      }
+    }
+
+    if (body.color === '') {
+      body.color = undefined;
     }
 
     const ev = new AgendaEvent(body);
@@ -90,6 +117,20 @@ router.post('/:id', async (req, res) => {
     if (body.date && body.date instanceof Date && !isNaN(body.date.getTime())) {
       body.date.setHours(0,0,0,0);
     }
+
+    // Check for suspended users
+    if (body.users && body.date) {
+      const suspendedName = await checkSuspendedUsers(body.users, body.date);
+      if (suspendedName) {
+        return res.status(400).json({ error: `Usuário ${suspendedName} está suspenso e não pode ser escalado nesta data.` });
+      }
+    }
+
+    if (body.color === '') {
+      body.$unset = { color: 1 };
+      delete body.color;
+    }
+
     const updated = await AgendaEvent.findByIdAndUpdate(req.params.id, body, { new: true, runValidators: true });
     if (!updated) return res.status(404).json({ error: 'event not found' });
     const populated = await AgendaEvent.findById(updated._id).populate('locationId').populate('users.userId');

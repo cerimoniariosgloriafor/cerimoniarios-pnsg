@@ -40,6 +40,38 @@ export default function UsersPage({ users, onCreated }: any) {
     }
   };
 
+  const handleSuspend = async (u: any, e: any) => {
+    e?.stopPropagation?.();
+    const isSuspended = u.suspendedUntil && new Date(u.suspendedUntil) > new Date();
+    if (isSuspended) {
+      if (!confirm(`Este usuário está suspenso até ${new Date(u.suspendedUntil).toLocaleDateString('pt-BR')}. Deseja remover a suspensão?`)) return;
+      try {
+        await axios.post(`/users/${u._id}/suspend`, { days: 0 });
+        setOrdered(prev => prev.map(item => item._id === u._id ? { ...item, suspendedUntil: null } : item));
+        onCreated?.();
+      } catch (err) {
+        console.error('remove suspension error', err);
+        alert('Erro ao remover suspensão');
+      }
+    } else {
+      const daysStr = prompt(`Quantos dias deseja suspender o usuário ${u.name}?`);
+      if (daysStr === null) return;
+      const days = parseInt(daysStr, 10);
+      if (isNaN(days) || days <= 0) {
+        alert('Quantidade de dias inválida.');
+        return;
+      }
+      try {
+        const res = await axios.post(`/users/${u._id}/suspend`, { days });
+        setOrdered(prev => prev.map(item => item._id === u._id ? { ...item, suspendedUntil: res.data.suspendedUntil } : item));
+        onCreated?.();
+      } catch (err) {
+        console.error('suspend error', err);
+        alert('Erro ao suspender usuário');
+      }
+    }
+  };
+
   const onDragStart = (e: any, id: string) => {
     setDraggedId(id);
     try { e.dataTransfer.setData('text/plain', id); e.dataTransfer.effectAllowed = 'move'; } catch (err) {}
@@ -122,12 +154,22 @@ export default function UsersPage({ users, onCreated }: any) {
                       onClick={() => openEdit(u._id)}
                       style={{ cursor: draggedId === u._id ? 'grabbing' : 'grab', background: dragOverId === u._id ? '#f8fafc' : undefined }}
                     >
-                      <td className="td-name">{idx + 1}. {u.name}</td>
+                      <td className="td-name">
+                        {idx + 1}. {u.name}
+                        {u.suspendedUntil && new Date(u.suspendedUntil) > new Date() && (
+                          <span title={`Suspenso até ${new Date(u.suspendedUntil).toLocaleDateString('pt-BR')}`} style={{ marginLeft: 8, fontSize: '1.1rem' }}>
+                            ⛔
+                          </span>
+                        )}
+                      </td>
                       <td className="td-sub" title={u.note || ''}>
                         {u.note ? (u.note.length > 80 ? u.note.slice(0,80) + '…' : u.note) : ('')}
                       </td>
                       <td className="td-actions">
                         <span style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                          <button className="action-btn" title={u.suspendedUntil && new Date(u.suspendedUntil) > new Date() ? "Remover Suspensão" : "Suspender"} onClick={(e) => handleSuspend(u, e)}>
+                            {u.suspendedUntil && new Date(u.suspendedUntil) > new Date() ? "✅" : "⛔"}
+                          </button>
                           <button className="action-btn" title="Arquivar" onClick={(e) => handleArchiveToggle(u, e)}>📦</button>
                         </span>
                       </td>

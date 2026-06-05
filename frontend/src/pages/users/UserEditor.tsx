@@ -19,6 +19,7 @@ export default function UserEditor({ id, onSaved }: any) {
   const [role, setRole] = useState<'servo' | 'admin'>('servo');
   const [mustChangePassword, setMustChangePassword] = useState(false);
   const [archived, setArchived] = useState(false);
+  const [suspendedUntil, setSuspendedUntil] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false); // Using for archive toggle loading state
 
@@ -42,6 +43,7 @@ export default function UserEditor({ id, onSaved }: any) {
       setPreferredCommunity(data.preferredCommunity || '');
       setOtherPastorals((data.otherPastorals || []).join(', '));
       setArchived(data.archived || false);
+      setSuspendedUntil(data.suspendedUntil || null);
     }).catch(err => console.error('load user', err)).finally(() => setLoading(false));
     return () => { mounted = false };
   }, [id]);
@@ -65,15 +67,19 @@ export default function UserEditor({ id, onSaved }: any) {
 
     setSaving(true);
     try {
-      const payload: any = { name, email, role };
-      if (fullName) payload.fullName = fullName;
-      if (note) payload.note = note;
-      if (birthDate) payload.birthDate = birthDate;
-      if (address) payload.address = address;
-      if (profession) payload.profession = profession;
-      if (sacraments) payload.sacraments = sacraments.split(',').map((s: string) => s.trim()).filter(Boolean);
-      if (preferredCommunity) payload.preferredCommunity = preferredCommunity;
-      if (otherPastorals) payload.otherPastorals = otherPastorals.split(',').map((s: string) => s.trim()).filter(Boolean);
+      const payload: any = { 
+        name, 
+        email, 
+        role,
+        fullName,
+        note,
+        address,
+        profession,
+        preferredCommunity,
+        birthDate: birthDate || undefined,
+        sacraments: sacraments.split(',').map((s: string) => s.trim()).filter(Boolean),
+        otherPastorals: otherPastorals.split(',').map((s: string) => s.trim()).filter(Boolean)
+      };
       if (phone) payload.phone = phoneDigits;
       if (password) payload.password = password;
       if (mustChangePassword) payload.mustChangePassword = true;
@@ -118,6 +124,14 @@ export default function UserEditor({ id, onSaved }: any) {
   return (
     <div className="editor-page">
       <div className="editor-card">
+        {suspendedUntil && new Date(suspendedUntil) > new Date() && (
+          <div style={{ marginBottom: 16, padding: 12, backgroundColor: '#fef2f2', border: '1px solid #f87171', borderRadius: 8, color: '#b91c1c', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 20 }}>⛔</span>
+            <div>
+              <strong>Usuário suspenso até {new Date(suspendedUntil).toLocaleDateString('pt-BR')}</strong>
+            </div>
+          </div>
+        )}
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 8 }}>
           <h3 style={{ margin:0 }}>{id ? 'Editar Usuário' : 'Adicionar Usuário'}</h3>
           {archived && <span style={{ background: '#f1f5f9', color: '#64748b', padding: '4px 8px', borderRadius: '4px', fontSize: 12, fontWeight: 500 }}>Arquivado</span>}
