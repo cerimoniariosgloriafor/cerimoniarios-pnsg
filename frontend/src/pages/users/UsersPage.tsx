@@ -8,6 +8,7 @@ export default function UsersPage({ users, onCreated }: any) {
   const [ordered, setOrdered] = useState<any[]>(users || []);
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
 
   useEffect(() => {
     // initialize ordered list from prop, sorting by existing order then name
@@ -20,21 +21,22 @@ export default function UsersPage({ users, onCreated }: any) {
     setOrdered(list);
   }, [users]);
 
-  const filtered = useMemo(() => ordered.filter((u: any) => (u.name || '').toLowerCase().includes(query.toLowerCase())), [ordered, query]);
-  const total = filtered.length;
-  const visible = filtered;
+  const activeFiltered = useMemo(() => ordered.filter((u: any) => !u.archived && (u.name || '').toLowerCase().includes(query.toLowerCase())), [ordered, query]);
+  const archivedFiltered = useMemo(() => ordered.filter((u: any) => u.archived && (u.name || '').toLowerCase().includes(query.toLowerCase())), [ordered, query]);
+  const total = activeFiltered.length;
 
-  const handleDelete = async (id: string, e: any) => {
+  const handleArchiveToggle = async (u: any, e: any) => {
     e?.stopPropagation?.();
-    if (!confirm('Remover este usuário?')) return;
+    const action = u.archived ? 'Restaurar' : 'Arquivar';
+    if (!confirm(`Deseja realmente ${action.toLowerCase()} este usuário?`)) return;
     try {
-      await axios.delete(`/users/${id}`);
-      // remove from local ordered state and notify parent
-      setOrdered(prev => prev.filter(u => u._id !== id));
+      await axios.post(`/users/${u._id}/toggle-archive`);
+      // Update local state and trigger refresh
+      setOrdered(prev => prev.map(item => item._id === u._id ? { ...item, archived: !item.archived } : item));
       onCreated?.();
     } catch (err) {
-      console.error('delete error', err);
-      alert('Erro ao remover');
+      console.error('archive toggle error', err);
+      alert(`Erro ao ${action.toLowerCase()}`);
     }
   };
 
@@ -87,7 +89,7 @@ export default function UsersPage({ users, onCreated }: any) {
       <div className="page-header">
         <div>
           <h2>Usuários</h2>
-          <div className="result-count">{total} usuários</div>
+          <div className="result-count">{total} usuários ativos</div>
         </div>
         <div style={{ width: 480, display: 'flex', gap: 8, alignItems: 'center' }}>
           <input className="search-input" placeholder="Pesquisar usuários" value={query} onChange={e => { setQuery(e.target.value); }} />
@@ -96,44 +98,98 @@ export default function UsersPage({ users, onCreated }: any) {
 
       <div>
         <div>
-          {total === 0 && <div className="empty">Nenhum usuário cadastrado</div>}
+          {total === 0 && <div className="empty">Nenhum usuário ativo cadastrado</div>}
 
-          <div className="table-wrap">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Nome</th>
-                  <th>Observação</th>
-                  <th style={{ width: 100, textAlign: 'right' }}>Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {visible.map((u: any, idx: number) => (
-                  <tr
-                    key={u._id}
-                    draggable
-                    onDragStart={(e) => { e.stopPropagation(); onDragStart(e, u._id); }}
-                    onDragOver={(e) => { e.stopPropagation(); onDragOver(e, u._id); }}
-                    onDrop={(e) => { e.stopPropagation(); onDrop(e, u._id); }}
-                    onDragEnd={() => onDragEnd()}
-                    onClick={() => openEdit(u._id)}
-                    style={{ cursor: draggedId === u._id ? 'grabbing' : 'grab', background: dragOverId === u._id ? '#f8fafc' : undefined }}
-                  >
-                    <td className="td-name">{idx + 1}. {u.name}</td>
-                    <td className="td-sub" title={u.note || ''}>
-                      {u.note ? (u.note.length > 80 ? u.note.slice(0,80) + '…' : u.note) : ('')}
-                    </td>
-                    <td className="td-actions">
-                      <span style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                        <button className="action-btn danger" title="Remover" onClick={(e) => handleDelete(u._id, e)}>🗑️</button>
-                      </span>
-                    </td>
+          {total > 0 && (
+            <div className="table-wrap">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Nome</th>
+                    <th>Observação</th>
+                    <th style={{ width: 100, textAlign: 'right' }}>Ações</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {activeFiltered.map((u: any, idx: number) => (
+                    <tr
+                      key={u._id}
+                      draggable
+                      onDragStart={(e) => { e.stopPropagation(); onDragStart(e, u._id); }}
+                      onDragOver={(e) => { e.stopPropagation(); onDragOver(e, u._id); }}
+                      onDrop={(e) => { e.stopPropagation(); onDrop(e, u._id); }}
+                      onDragEnd={() => onDragEnd()}
+                      onClick={() => openEdit(u._id)}
+                      style={{ cursor: draggedId === u._id ? 'grabbing' : 'grab', background: dragOverId === u._id ? '#f8fafc' : undefined }}
+                    >
+                      <td className="td-name">{idx + 1}. {u.name}</td>
+                      <td className="td-sub" title={u.note || ''}>
+                        {u.note ? (u.note.length > 80 ? u.note.slice(0,80) + '…' : u.note) : ('')}
+                      </td>
+                      <td className="td-actions">
+                        <span style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                          <button className="action-btn" title="Arquivar" onClick={(e) => handleArchiveToggle(u, e)}>📦</button>
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
 
+          {archivedFiltered.length > 0 && (
+            <div style={{ marginTop: '2rem' }}>
+              <button 
+                onClick={() => setShowArchived(!showArchived)}
+                style={{ 
+                  marginBottom: '1rem', 
+                  padding: '8px 16px', 
+                  borderRadius: '6px', 
+                  border: '1px solid #e2e8f0', 
+                  cursor: 'pointer', 
+                  background: '#f8fafc',
+                  color: '#475569',
+                  fontWeight: 500
+                }}
+              >
+                {showArchived ? 'Ocultar Arquivados' : `Mostrar Arquivados (${archivedFiltered.length})`}
+              </button>
+
+              {showArchived && (
+                <div className="table-wrap" style={{ opacity: 0.8 }}>
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Nome</th>
+                        <th>Observação</th>
+                        <th style={{ width: 100, textAlign: 'right' }}>Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {archivedFiltered.map((u: any) => (
+                        <tr
+                          key={u._id}
+                          onClick={() => openEdit(u._id)}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          <td className="td-name" style={{ textDecoration: 'line-through', color: '#64748b' }}>{u.name}</td>
+                          <td className="td-sub" title={u.note || ''}>
+                            {u.note ? (u.note.length > 80 ? u.note.slice(0,80) + '…' : u.note) : ('')}
+                          </td>
+                          <td className="td-actions">
+                            <span style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                              <button className="action-btn" title="Restaurar" onClick={(e) => handleArchiveToggle(u, e)}>♻️</button>
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
           
         </div>
         <aside style={{ display: 'none' }} />

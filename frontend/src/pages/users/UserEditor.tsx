@@ -18,8 +18,9 @@ export default function UserEditor({ id, onSaved }: any) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [role, setRole] = useState<'servo' | 'admin'>('servo');
   const [mustChangePassword, setMustChangePassword] = useState(false);
+  const [archived, setArchived] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  const [deleting, setDeleting] = useState(false); // Using for archive toggle loading state
 
   useEffect(() => {
     if (!id) return;
@@ -40,6 +41,7 @@ export default function UserEditor({ id, onSaved }: any) {
       setSacraments((data.sacraments || []).join(', '));
       setPreferredCommunity(data.preferredCommunity || '');
       setOtherPastorals((data.otherPastorals || []).join(', '));
+      setArchived(data.archived || false);
     }).catch(err => console.error('load user', err)).finally(() => setLoading(false));
     return () => { mounted = false };
   }, [id]);
@@ -85,17 +87,18 @@ export default function UserEditor({ id, onSaved }: any) {
     } finally { setSaving(false); }
   };
 
-  const handleDelete = async () => {
+  const handleToggleArchive = async () => {
     if (!id) return;
-    if (!confirm('Deseja realmente apagar este usuário?')) return;
+    const action = archived ? 'Restaurar' : 'Arquivar';
+    if (!confirm(`Deseja realmente ${action.toLowerCase()} este usuário?`)) return;
     setDeleting(true);
     try {
-      await axios.delete(`/users/${id}`);
+      await axios.post(`/users/${id}/toggle-archive`);
       onSaved && onSaved();
       close();
     } catch (err) {
-      console.error('delete user', err);
-      alert('Erro ao apagar');
+      console.error('toggle archive', err);
+      alert(`Erro ao ${action.toLowerCase()}`);
     } finally { setDeleting(false); }
   };
 
@@ -117,6 +120,7 @@ export default function UserEditor({ id, onSaved }: any) {
       <div className="editor-card">
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 8 }}>
           <h3 style={{ margin:0 }}>{id ? 'Editar Usuário' : 'Adicionar Usuário'}</h3>
+          {archived && <span style={{ background: '#f1f5f9', color: '#64748b', padding: '4px 8px', borderRadius: '4px', fontSize: 12, fontWeight: 500 }}>Arquivado</span>}
         </div>
 
         {loading ? <div>Carregando...</div> : (
@@ -163,7 +167,7 @@ export default function UserEditor({ id, onSaved }: any) {
             )}
             <div style={{ display: 'flex', gap: 8 }}>
               <button className="btn" type="submit" disabled={saving}>{saving ? 'Salvando...' : (id ? 'Salvar' : 'Criar')}</button>
-              {id && <button type="button" className="btn secondary" onClick={handleDelete} disabled={deleting}>{deleting ? 'Apagando...' : 'Apagar'}</button>}
+              {id && <button type="button" className="btn secondary" onClick={handleToggleArchive} disabled={deleting}>{deleting ? 'Aguarde...' : (archived ? 'Restaurar' : 'Arquivar')}</button>}
             </div>
           </form>
         )}

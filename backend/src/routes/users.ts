@@ -99,6 +99,20 @@ router.post('/:id', async (req, res) => {
   }
 });
 
+router.post('/:id/toggle-archive', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await User.findById(id);
+    if (!user) return res.status(404).json({ error: 'user not found' });
+    (user as any).archived = !(user as any).archived;
+    await user.save();
+    res.json({ success: true, archived: (user as any).archived });
+  } catch (err) {
+    console.error('toggle archive error', err);
+    res.status(500).json({ error: 'failed to toggle archive', details: (err as any)?.message });
+  }
+});
+
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;

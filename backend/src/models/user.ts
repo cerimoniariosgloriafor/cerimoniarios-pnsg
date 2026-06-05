@@ -15,7 +15,8 @@ const UserSchema = new Schema({
   order: { type: Number, default: 0 },
   role: { type: String, enum: ['servo','admin'], default: 'servo' },
   passwordHash: { type: String, select: false },
-  mustChangePassword: { type: Boolean, default: false }
+  mustChangePassword: { type: Boolean, default: false },
+  archived: { type: Boolean, default: false }
 }, { timestamps: true });
 
 export default model('User', UserSchema);
