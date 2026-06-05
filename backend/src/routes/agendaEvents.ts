@@ -154,4 +154,27 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
+// checkin by id
+router.post('/:id/checkin', async (req, res) => {
+  try {
+    const AgendaEvent = require('../models/agendaEvent').default;
+    const { userId } = req.body;
+    if (!userId) return res.status(400).json({ error: 'userId required' });
+
+    const event = await AgendaEvent.findById(req.params.id);
+    if (!event) return res.status(404).json({ error: 'event not found' });
+
+    const userEntry = event.users.find((u: any) => String(u.userId) === String(userId));
+    if (!userEntry) return res.status(400).json({ error: 'user not assigned to this event' });
+
+    userEntry.checkedInAt = new Date();
+    await event.save();
+    
+    res.json({ success: true, checkedInAt: userEntry.checkedInAt });
+  } catch (err) {
+    console.error('agendaEvents checkin error', err);
+    res.status(500).json({ error: 'failed to checkin', details: (err as any)?.message });
+  }
+});
+
 export default router;

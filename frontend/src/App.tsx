@@ -80,6 +80,33 @@ export default function App() {
     }
   };
 
+  const handleCheckIn = async (eventId: string) => {
+    if (!authUser) return;
+    try {
+      const res = await axios.post(`/agenda-events/${eventId}/checkin`, { userId: authUser._id });
+      if (res.data.success) {
+        setDashboardEvents(prev => prev.map(ev => {
+          if (ev._id === eventId) {
+            return {
+              ...ev,
+              users: ev.users.map((u: any) => {
+                if (String(u.userId?._id || u.userId) === String(authUser._id)) {
+                  return { ...u, checkedInAt: res.data.checkedInAt };
+                }
+                return u;
+              })
+            };
+          }
+          return ev;
+        }));
+        setSwipedId(null);
+      }
+    } catch (err) {
+      console.error('checkin failed', err);
+      alert('Erro ao realizar check-in');
+    }
+  };
+
   const handleLogout = async () => {
     try { await logout(); } catch {}
     navigate('/login');
@@ -427,7 +454,7 @@ export default function App() {
                                           onPointerUp={(e) => handlePointerUp(e)}
                                           style={{
                                             background: '#fff', padding: 12, borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.05)', display: 'flex', gap: 12, alignItems: 'center', borderLeft: borderColor ? `9px solid ${borderColor}` : '1px solid #e2e8f0',
-                                            transform: swipedId === ev._id ? 'translateX(-84px)' : 'translateX(0)', transition: 'transform 180ms ease-out', touchAction: 'pan-y'
+                                            transform: swipedId === ev._id ? 'translateX(-190px)' : 'translateX(0)', transition: 'transform 180ms ease-out', touchAction: 'pan-y'
                                           }}
                                         >
                                           <div style={{ width: 60, fontWeight: 700, fontSize: 16, color: '#334155' }}>{ev.time?.start || '—'}</div>
@@ -443,7 +470,12 @@ export default function App() {
                                           </div>
                                         </div>
                                         {swipedId === ev._id && (
-                                          <div style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)' }}>
+                                          <div style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', display: 'flex', gap: 8 }}>
+                                            {myUser.checkedInAt ? (
+                                              <button className="btn" style={{ background: '#16a34a', borderColor: '#16a34a', opacity: 0.9, cursor: 'default' }} disabled>✅ Feito</button>
+                                            ) : (
+                                              <button className="btn secondary" onClick={() => handleCheckIn(ev._id)}>Check-in</button>
+                                            )}
                                             <button className="btn" onClick={() => { openMaps(addr); setSwipedId(null); }}>Mapa</button>
                                           </div>
                                         )}

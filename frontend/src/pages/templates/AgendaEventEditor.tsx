@@ -62,7 +62,7 @@ export default function AgendaEventEditor({ predate, id }: { predate?: string, i
           setColor(ev.color || '');
           setLocationId(ev.locationId?._id || ev.locationId || null);
           setTimeStart(ev.time?.start || '');
-          setAssignedUsers((ev.users || []).map((au: any) => ({ userId: au.userId?._id || au.userId, roles: au.roles || [] })));
+          setAssignedUsers((ev.users || []).map((au: any) => ({ userId: au.userId?._id || au.userId, roles: au.roles || [], checkedInAt: au.checkedInAt })));
           setSelectedTemplateId(ev.templateId || null);
         }
       } catch (err) {
