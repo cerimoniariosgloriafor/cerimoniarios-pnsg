@@ -31,6 +31,7 @@ export default function App() {
     const p = window.location.pathname.replace(/\/$/, '');
     if (p === '/login') return 'login';
     if (p === '' || p === '/') return 'dashboard';
+    if (p === '/profile') return 'profile';
     if (p === '/locations') return 'locations';
     if (p === '/users') return 'users';
     if (p === '/templates') return 'templates';
@@ -69,6 +70,7 @@ export default function App() {
   const [swipedId, setSwipedId] = useState<string | null>(null);
   const [pointerStartX, setPointerStartX] = useState<number | null>(null);
   const isServo = !!(authUser && authUser.role === 'servo');
+  const isAdmin = !!(authUser && authUser.role === 'admin');
 
   const handleLogin = async (identity: string, password: string) => {
     try {
@@ -122,6 +124,8 @@ export default function App() {
       setPage('login'); setCurrentId(null);
     } else if (normalized === '/' || normalized === '/dashboard') {
       setPage('dashboard'); setCurrentId(null);
+    } else if (normalized === '/profile') {
+      setPage('profile'); setCurrentId(null);
     } else if (normalized === '/locations') {
       setPage('locations'); setCurrentId(null);
     } else if (normalized === '/users') {
@@ -164,6 +168,7 @@ export default function App() {
       const p = window.location.pathname.replace(/\/$/, '');
       if (p === '/login') { setPage('login'); setCurrentId(null); return; }
       if (p === '' || p === '/') { setPage('dashboard'); setCurrentId(null); }
+      else if (p === '/profile') { setPage('profile'); setCurrentId(null); }
       else if (p === '/locations') { setPage('locations'); setCurrentId(null); }
       else if (p === '/users') { setPage('users'); setCurrentId(null); }
       else if (p === '/templates') { setPage('templates'); setCurrentId(null); }
@@ -334,6 +339,11 @@ export default function App() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <button className="nav-btn" onClick={() => navigate('/profile')}>
+                <span className="icon">👤</span>
+                <span className="label">Meu Perfil</span>
+              </button>
+
               {!isServo && (
                 <>
                   <button className="nav-btn" onClick={() => navigate('/locations')}>
@@ -380,6 +390,10 @@ export default function App() {
           {!authLoading && authUser && (
             <>
               {mustChangePassword && <ChangePasswordModal onDone={() => setMustChangePassword(false)} />}
+
+              {page === 'profile' && (
+                <UserEditor id={authUser._id} isProfile={true} isAdmin={isAdmin} onSaved={() => fetchData()} />
+              )}
 
               {page === 'dashboard' && (
                 <>

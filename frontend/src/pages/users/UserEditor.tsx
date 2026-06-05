@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 
-export default function UserEditor({ id, onSaved }: any) {
+export default function UserEditor({ id, onSaved, isProfile, isAdmin = true }: any) {
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState('');
   const [fullName, setFullName] = useState('');
@@ -49,7 +49,7 @@ export default function UserEditor({ id, onSaved }: any) {
   }, [id]);
 
   const close = () => {
-    window.history.pushState({}, '', '/users');
+    window.history.pushState({}, '', isProfile ? '/' : '/users');
     window.dispatchEvent(new PopStateEvent('popstate'));
   };
 
@@ -82,7 +82,7 @@ export default function UserEditor({ id, onSaved }: any) {
       };
       if (phone) payload.phone = phoneDigits;
       if (password) payload.password = password;
-      if (mustChangePassword) payload.mustChangePassword = true;
+      if (mustChangePassword && isAdmin) payload.mustChangePassword = true;
       if (id) await axios.post(`/users/${id}`, payload);
       else await axios.post('/users', payload);
       onSaved && onSaved();
@@ -133,7 +133,7 @@ export default function UserEditor({ id, onSaved }: any) {
           </div>
         )}
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 8 }}>
-          <h3 style={{ margin:0 }}>{id ? 'Editar Usuário' : 'Adicionar Usuário'}</h3>
+          <h3 style={{ margin:0 }}>{isProfile ? 'Meu Perfil' : (id ? 'Editar Usuário' : 'Adicionar Usuário')}</h3>
           {archived && <span style={{ background: '#f1f5f9', color: '#64748b', padding: '4px 8px', borderRadius: '4px', fontSize: 12, fontWeight: 500 }}>Arquivado</span>}
         </div>
 
@@ -142,17 +142,19 @@ export default function UserEditor({ id, onSaved }: any) {
             <div className="form-row">
               <input className="input" placeholder="Nome" value={name} onChange={e => setName(e.target.value)} required />
               <input className="input" placeholder="Nome completo" value={fullName} onChange={e => setFullName(e.target.value)} />
-              <select className="input" value={role} onChange={e => setRole(e.target.value as any)}>
-                <option value="servo">Servo</option>
-                <option value="admin">Admin</option>
-              </select>
+              {isAdmin && (
+                <select className="input" value={role} onChange={e => setRole(e.target.value as any)}>
+                  <option value="servo">Servo</option>
+                  <option value="admin">Admin</option>
+                </select>
+              )}
             </div>
             <div className="form-row">
               <input className="input" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} />
               <input className="input" placeholder="(00) 00000-0000" value={phone} onChange={handlePhoneChange} inputMode="numeric" maxLength={15} />
             </div>
             <div className="form-row">
-              <input className="input" type="password" placeholder="Nova Senha" value={password} onChange={e => setPassword(e.target.value)} />
+              <input className="input" type="password" placeholder="Nova Senha (deixe em branco para manter)" value={password} onChange={e => setPassword(e.target.value)} />
               <input className="input" type="password" placeholder="Confirmar Senha" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
             </div>
             <div style={{ color: '#64748b', fontSize: 13, marginTop: 6 }}>Data de Nascimento</div>
@@ -168,10 +170,12 @@ export default function UserEditor({ id, onSaved }: any) {
               <input className="input" placeholder="Quais sacramentos possui" value={sacraments} onChange={e => setSacraments(e.target.value)} />
               <input className="input" placeholder="Outras pastorais" value={otherPastorals} onChange={e => setOtherPastorals(e.target.value)} />
             </div>
+            {isAdmin && (
             <div className="form-row">
               <textarea className="input" placeholder="Observação" value={note} onChange={e => setNote(e.target.value)} style={{ minHeight: 80 }} />
             </div>
-            {id && (
+            )}
+            {id && isAdmin && (
               <div style={{ marginBottom: 8 }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <input type="checkbox" checked={mustChangePassword} onChange={e => setMustChangePassword(e.target.checked)} />
@@ -180,8 +184,8 @@ export default function UserEditor({ id, onSaved }: any) {
               </div>
             )}
             <div style={{ display: 'flex', gap: 8 }}>
-              <button className="btn" type="submit" disabled={saving}>{saving ? 'Salvando...' : (id ? 'Salvar' : 'Criar')}</button>
-              {id && <button type="button" className="btn secondary" onClick={handleToggleArchive} disabled={deleting}>{deleting ? 'Aguarde...' : (archived ? 'Restaurar' : 'Arquivar')}</button>}
+              <button className="btn" type="submit" disabled={saving}>{saving ? 'Salvando...' : 'Salvar'}</button>
+              {id && isAdmin && !isProfile && <button type="button" className="btn secondary" onClick={handleToggleArchive} disabled={deleting}>{deleting ? 'Aguarde...' : (archived ? 'Restaurar' : 'Arquivar')}</button>}
             </div>
           </form>
         )}
