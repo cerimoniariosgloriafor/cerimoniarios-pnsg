@@ -83,7 +83,7 @@ export default function AgendaEventEditor({ predate, id }: { predate?: string, i
       setTimeStart(found.time?.start || '');
       const u = (found.users || []).map((uu: any) => ({ userId: uu._id, roles: [] }));
       setAssignedUsers(u);
-      setTitle(found.title || '');
+      setTitle(prevTitle => prevTitle || found.title || '');
     }
   };
 

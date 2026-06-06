@@ -16,9 +16,15 @@ export default function UserForm({ onCreated }: { onCreated?: () => void }) {
       setSuccess('Usuário criado com sucesso');
       setTimeout(() => setSuccess(''), 2500);
       onCreated && onCreated();
-    } catch (err) {
+    } catch (err: any) {
       console.error('create user error', err);
-      alert('Erro ao criar usuário');
+      if (err.response?.data?.code === 'EMAIL_IN_USE') {
+        alert('Este email já está cadastrado.');
+      } else if (err.response?.data?.code === 'PHONE_IN_USE') {
+        alert('Este telefone já está cadastrado.');
+      } else {
+        alert('Erro ao criar usuário');
+      }
     } finally { setLoading(false); }
   };
 

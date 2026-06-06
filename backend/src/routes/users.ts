@@ -11,6 +11,15 @@ router.post('/', async (req, res) => {
     if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return res.status(400).json({ error: 'invalid email' });
     if (phone && !/^[0-9+\-()\s]{6,}$/.test(phone)) return res.status(400).json({ error: 'invalid phone' });
 
+    if (email) {
+      const existingEmail = await User.findOne({ email });
+      if (existingEmail) return res.status(400).json({ error: 'email already in use', code: 'EMAIL_IN_USE' });
+    }
+    if (phone) {
+      const existingPhone = await User.findOne({ phone });
+      if (existingPhone) return res.status(400).json({ error: 'phone already in use', code: 'PHONE_IN_USE' });
+    }
+
     const roleVal = role === 'admin' ? 'admin' : 'servo';
     // determine order: append to end
     const maxOrderDoc = await User.findOne().sort({ order: -1 }).limit(1);
@@ -77,6 +86,15 @@ router.post('/:id', async (req, res) => {
     if (!email && !phone) return res.status(400).json({ error: 'email or phone required' });
     if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return res.status(400).json({ error: 'invalid email' });
     if (phone && !/^[0-9+\-()\s]{6,}$/.test(phone)) return res.status(400).json({ error: 'invalid phone' });
+
+    if (email) {
+      const existingEmail = await User.findOne({ email, _id: { $ne: id } });
+      if (existingEmail) return res.status(400).json({ error: 'email already in use', code: 'EMAIL_IN_USE' });
+    }
+    if (phone) {
+      const existingPhone = await User.findOne({ phone, _id: { $ne: id } });
+      if (existingPhone) return res.status(400).json({ error: 'phone already in use', code: 'PHONE_IN_USE' });
+    }
 
     const update: any = { name, fullName, birthDate: birthDate || undefined, address, profession, sacraments: sacraments || [], preferredCommunity, otherPastorals: otherPastorals || [], note, email, phone };
     // if role provided, validate and include

@@ -87,9 +87,15 @@ export default function UserEditor({ id, onSaved, isProfile, isAdmin = true }: a
       else await axios.post('/users', payload);
       onSaved && onSaved();
       close();
-    } catch (err) {
+    } catch (err: any) {
       console.error('save user', err);
-      alert('Erro ao salvar');
+      if (err.response?.data?.code === 'EMAIL_IN_USE') {
+        alert('Este email já está cadastrado em outro usuário.');
+      } else if (err.response?.data?.code === 'PHONE_IN_USE') {
+        alert('Este telefone já está cadastrado em outro usuário.');
+      } else {
+        alert('Erro ao salvar');
+      }
     } finally { setSaving(false); }
   };
 
