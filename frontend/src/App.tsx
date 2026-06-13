@@ -11,8 +11,10 @@ import TemplatesWeeklyPage from './pages/templates/TemplatesWeeklyPage';
 import TemplatesMonthlyPage from './pages/templates/TemplatesMonthlyPage';
 import AgendaPage from './pages/templates/AgendaPage';
 import AgendaEventEditor from './pages/templates/AgendaEventEditor';
+import EventReportPage from './pages/dashboard/EventReportPage';
 import LoginPage from './pages/auth/LoginPage';
 import ChangePasswordModal from './components/ChangePasswordModal';
+import RoleFunctionsPage from './pages/functions/RoleFunctionsPage';
 import logo from './assets/logo.png';
 
 const modalStyle: React.CSSProperties = { position: 'fixed', left: 0, right: 0, top: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(2,6,23,0.4)', zIndex: 200 };
@@ -38,8 +40,10 @@ export default function App() {
     if (p === '/templates/new') return 'template_new';
     if (p === '/templates/weekly') return 'templates_weekly';
     if (p === '/templates/monthly') return 'templates_monthly';
+    if (p === '/functions') return 'functions';
     if (p === '/agenda') return 'templates_agenda';
     if (p === '/agenda/new') return 'agenda_new';
+    if (p.startsWith('/agenda/') && p.endsWith('/report')) return 'agenda_report';
     if (p.startsWith('/agenda/')) return 'agenda_edit';
     if (p.startsWith('/templates/')) return 'template_edit';
     if (p === '/locations/new') return 'location_new';
@@ -138,10 +142,14 @@ export default function App() {
       setPage('templates_weekly'); setCurrentId(null);
     } else if (normalized === '/templates/monthly') {
       setPage('templates_monthly'); setCurrentId(null);
+    } else if (normalized === '/functions') {
+      setPage('functions'); setCurrentId(null);
     } else if (normalized === '/agenda') {
       setPage('templates_agenda'); setCurrentId(null);
     } else if (normalized === '/agenda/new') {
       setPage('agenda_new'); setCurrentId(null);
+    } else if (normalized.startsWith('/agenda/') && normalized.endsWith('/report')) {
+      setPage('agenda_report'); setCurrentId(normalized.split('/')[2]);
     } else if (normalized.startsWith('/agenda/')) {
       setPage('agenda_edit'); setCurrentId(normalized.replace('/agenda/', ''));
     } else if (normalized.startsWith('/templates/')) {
@@ -177,6 +185,7 @@ export default function App() {
       else if (p === '/templates/monthly') { setPage('templates_monthly'); setCurrentId(null); }
       else if (p === '/agenda') { setPage('templates_agenda'); setCurrentId(null); }
       else if (p === '/agenda/new') { setPage('agenda_new'); setCurrentId(null); }
+      else if (p.startsWith('/agenda/') && p.endsWith('/report')) { setPage('agenda_report'); setCurrentId(p.split('/')[2]); }
       else if (p.startsWith('/agenda/')) { setPage('agenda_edit'); setCurrentId(p.replace('/agenda/', '')); }
       else if (p.startsWith('/templates/')) { setPage('template_edit'); setCurrentId(p.replace('/templates/', '')); }
       else if (p === '/locations/new') { setPage('location_new'); setCurrentId(null); }
@@ -355,6 +364,11 @@ export default function App() {
                     <span className="icon">👥</span>
                     <span className="label">Usuários</span>
                   </button>
+
+                  <button className="nav-btn" onClick={() => navigate('/functions')}>
+                    <span className="icon">⚙️</span>
+                    <span className="label">Funções</span>
+                  </button>
                 </>
               )}
 
@@ -468,7 +482,7 @@ export default function App() {
                                           onPointerUp={(e) => handlePointerUp(e)}
                                           style={{
                                             background: '#fff', padding: 12, borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.05)', display: 'flex', gap: 12, alignItems: 'center', borderLeft: borderColor ? `9px solid ${borderColor}` : '1px solid #e2e8f0',
-                                            transform: swipedId === ev._id ? 'translateX(-190px)' : 'translateX(0)', transition: 'transform 180ms ease-out', touchAction: 'pan-y'
+                                            transform: swipedId === ev._id ? 'translateX(-190px)' : 'translateX(0)', transition: 'transform 180ms ease-out', touchAction: 'pan-y', userSelect: 'none'
                                           }}
                                         >
                                           <div style={{ width: 60, fontWeight: 700, fontSize: 16, color: '#334155' }}>{ev.time?.start || '—'}</div>
@@ -482,11 +496,12 @@ export default function App() {
                                               </span>
                                             </div>
                                           </div>
+                                          <div style={{ color: '#94a3b8', fontSize: 18, fontWeight: 'bold' }} aria-hidden>‹‹</div>
                                         </div>
                                         {swipedId === ev._id && (
                                           <div style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', display: 'flex', gap: 8 }}>
                                             {myUser.checkedInAt ? (
-                                              <button className="btn" style={{ background: '#16a34a', borderColor: '#16a34a', opacity: 0.9, cursor: 'default' }} disabled>✅ Feito</button>
+                                              <button className="btn" style={{ background: '#16a34a', borderColor: '#16a34a', color: '#fff' }} onClick={() => { navigate('/agenda/' + ev._id + '/report'); setSwipedId(null); }}>✅ Feito</button>
                                             ) : (
                                               <button className="btn secondary" onClick={() => handleCheckIn(ev._id)}>Check-in</button>
                                             )}
@@ -515,6 +530,10 @@ export default function App() {
 
               {page === 'users' && (
                 <UsersPage users={users} onCreated={fetchData} />
+              )}
+
+              {page === 'functions' && (
+                <RoleFunctionsPage />
               )}
 
               {page === 'location_new' && (
@@ -561,6 +580,9 @@ export default function App() {
               )}
               {page === 'agenda_edit' && currentId && (
                 <AgendaEventEditor id={currentId} />
+              )}
+              {page === 'agenda_report' && currentId && (
+                <EventReportPage id={currentId} onBack={() => navigate('/')} />
               )}
             </>
           )}

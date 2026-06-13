@@ -6,6 +6,19 @@ const AgendaEventUserSchema = new Schema({
   checkedInAt: { type: Date }
 }, { _id: false });
 
+const ChecklistItemSchema = new Schema({
+  role: { type: String, required: true },
+  task: { type: String, required: true },
+  status: { type: String, enum: ['Sim', 'Nao', 'N/A'], default: 'N/A' },
+  updatedBy: { type: Types.ObjectId, ref: 'User' },
+  updatedAt: { type: Date }
+}, { _id: false });
+
+const OccurrenceSchema = new Schema({
+  userId: { type: Types.ObjectId, ref: 'User', required: true },
+  note: { type: String }
+}, { _id: false, timestamps: true });
+
 const AgendaEventSchema = new Schema({
   date: { type: Date, required: true },
   templateId: { type: Types.ObjectId, ref: 'ShiftTemplate' },
@@ -15,7 +28,10 @@ const AgendaEventSchema = new Schema({
   locationId: { type: Types.ObjectId, ref: 'Location' },
   time: { start: { type: String } },
   users: [AgendaEventUserSchema],
-  createdBy: { type: Types.ObjectId, ref: 'User' }
+  createdBy: { type: Types.ObjectId, ref: 'User' },
+  checklist: [ChecklistItemSchema],
+  acolyteCount: { type: Number, default: 0 },
+  occurrences: [OccurrenceSchema]
 }, { timestamps: true });
 
 const AgendaEventModel = (models && (models.AgendaEvent as any)) || model('AgendaEvent', AgendaEventSchema);
