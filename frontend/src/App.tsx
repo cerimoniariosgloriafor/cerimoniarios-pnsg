@@ -81,6 +81,36 @@ export default function App() {
   const isServo = !!(authUser && authUser.role === 'servo');
   const isAdmin = !!(authUser && authUser.role === 'admin');
 
+  const [dismissedBirthdays, setDismissedBirthdays] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (authUser) {
+      try {
+        const stored = localStorage.getItem(`dismissedBirthdays_${authUser._id}`);
+        if (stored) setDismissedBirthdays(JSON.parse(stored));
+      } catch (e) {}
+    }
+  }, [authUser]);
+
+  const handleDismissBirthday = (userId: string) => {
+    const currentYear = new Date().getFullYear();
+    const key = `${userId}_${currentYear}`;
+    const newDismissed = [...dismissedBirthdays, key];
+    setDismissedBirthdays(newDismissed);
+    if (authUser) {
+      localStorage.setItem(`dismissedBirthdays_${authUser._id}`, JSON.stringify(newDismissed));
+    }
+  };
+
+  const today = new Date();
+  const todayMMDD = `${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
+  const currentYear = today.getFullYear();
+  const activeBirthdays = users.filter(u => {
+    if (!u.birthDate) return false;
+    const mmdd = String(u.birthDate).slice(5, 10);
+    return mmdd === todayMMDD && !dismissedBirthdays.includes(`${u._id}_${currentYear}`);
+  });
+
   const handleDismissNotification = async (notifId: string) => {
     if (!authUser) return;
     try {
@@ -500,6 +530,28 @@ export default function App() {
                     <h2>Dashboard</h2>
                     <p>Bem-vindo ao sistema de escalas — abaixo estão seus próximos serviços.</p>
                   </section>
+
+                  {activeBirthdays.length > 0 && (
+                    <div style={{ margin: '16px 0', padding: 16, backgroundColor: '#fdf4ff', border: '1px solid #fbcfe8', borderRadius: 8 }}>
+                      <h3 style={{ margin: '0 0 12px 0', color: '#be185d', display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span>🎉</span> Aniversariantes do Dia
+                      </h3>
+                      <div style={{ display: 'grid', gap: 8 }}>
+                        {activeBirthdays.map(u => {
+                          const isMe = authUser && String(u._id) === String(authUser._id);
+                          return (
+                            <div key={u._id} style={{ position: 'relative', background: '#fff', padding: 12, borderRadius: 6, border: '1px solid #fce7f3', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                              <div style={{ paddingRight: 24 }}>
+                                <div style={{ fontWeight: 600 }}>{isMe ? `Hoje é seu aniversário, ${u.name}! Parabéns! 🥳` : `Hoje é aniversário do ${u.name}!`}</div>
+                                <div style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>{isMe ? 'Que Deus abençoe e ilumine o seu dia.' : 'Deseje a ele um feliz aniversário.'}</div>
+                              </div>
+                              <button onClick={() => handleDismissBirthday(u._id)} style={{ position: 'absolute', top: 8, right: 4, background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: 20, padding: '4px', lineHeight: 1 }} aria-label="Descartar">×</button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
 
                   {isAdmin && substitutionRequests.filter(r => r.status === 'PENDING').length > 0 && (
                     <div style={{ margin: '16px 0', padding: 16, backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8 }}>
