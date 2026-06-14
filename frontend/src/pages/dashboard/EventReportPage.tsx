@@ -17,9 +17,9 @@ export default function EventReportPage({ id, onBack }: EventReportPageProps) {
   const [occurrences, setOccurrences] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
   const [expandedRoles, setExpandedRoles] = useState<Record<string, boolean>>({
-    'M.C.': true,
-    'C.A.': true,
-    'C.L.': true
+    'M.C.': false,
+    'C.A.': false,
+    'C.L.': false
   });
 
   const toggleRole = (role: string) => {

@@ -15,6 +15,7 @@ import EventReportPage from './pages/dashboard/EventReportPage';
 import LoginPage from './pages/auth/LoginPage';
 import ChangePasswordModal from './components/ChangePasswordModal';
 import RoleFunctionsPage from './pages/functions/RoleFunctionsPage';
+import EventDetailsModal from './components/EventDetailsModal';
 import logo from './assets/logo.png';
 
 const modalStyle: React.CSSProperties = { position: 'fixed', left: 0, right: 0, top: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(2,6,23,0.4)', zIndex: 200 };
@@ -69,10 +70,13 @@ export default function App() {
 
   const { user: authUser, loading: authLoading, mustChangePassword, login, logout, setUser, setMustChangePassword } = useAuth();
   const [dashboardEvents, setDashboardEvents] = useState<any[]>([]);
+  const [substitutionRequests, setSubstitutionRequests] = useState<any[]>([]);
+  const [selectedEventForModal, setSelectedEventForModal] = useState<any | null>(null);
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [swipedId, setSwipedId] = useState<string | null>(null);
   const [pointerStartX, setPointerStartX] = useState<number | null>(null);
+  const [showPendingRequests, setShowPendingRequests] = useState(false);
   const isServo = !!(authUser && authUser.role === 'servo');
   const isAdmin = !!(authUser && authUser.role === 'admin');
 
@@ -222,21 +226,26 @@ export default function App() {
   const onSaved = async () => { await fetchData(); navigate('/locations'); };
   const onUserSaved = async () => { await fetchData(); navigate('/users'); };
 
-  // load today's and upcoming events for the dashboard filtered to the logged-in user
   useEffect(() => {
     if (!authUser || page !== 'dashboard') {
       setDashboardEvents([]);
+      setSubstitutionRequests([]);
       return;
     }
-    const fetchMyEvents = async () => {
+    const fetchDashboardData = async () => {
       try {
         const d = new Date();
         const y = d.getFullYear();
         const m = String(d.getMonth() + 1).padStart(2, '0');
         const day = String(d.getDate()).padStart(2, '0');
         const startDate = `${y}-${m}-${day}`;
-        const res = await axios.get('/agenda-events', { params: { startDate } });
-        const items = res.data || [];
+        
+        const [evRes, reqRes] = await Promise.all([
+          axios.get('/agenda-events', { params: { startDate } }),
+          axios.get('/substitution-requests')
+        ]);
+
+        const items = evRes.data || [];
         const mine = (items || []).filter((ev: any) => {
           const users = ev.users || [];
           return users.some((u: any) => String(u.userId?._id || u.userId) === String(authUser._id));
@@ -253,13 +262,47 @@ export default function App() {
         });
         
         setDashboardEvents(mine);
+        setSubstitutionRequests(reqRes.data || []);
       } catch (err) {
-        console.error('load dashboard events', err);
+        console.error('load dashboard data', err);
         setDashboardEvents([]);
+        setSubstitutionRequests([]);
       }
     };
-    fetchMyEvents();
+    fetchDashboardData();
   }, [authUser, page]);
+
+  const handleApproveRequest = async (reqId: string, substituteUserId?: string) => {
+    try {
+      await axios.post(`/substitution-requests/${reqId}/approve`, { substituteUserId });
+      alert('Solicitação aprovada e escala atualizada!');
+      // Refetch
+      setPage(''); setTimeout(() => setPage('dashboard'), 0); // Hack to trigger refetch
+    } catch (err) {
+      alert('Erro ao aprovar solicitação');
+    }
+  };
+
+  const handleRejectRequest = async (reqId: string) => {
+    try {
+      await axios.post(`/substitution-requests/${reqId}/reject`);
+      alert('Solicitação recusada!');
+      setPage(''); setTimeout(() => setPage('dashboard'), 0);
+    } catch (err) {
+      alert('Erro ao recusar solicitação');
+    }
+  };
+
+  const handleTakeShift = async (reqId: string) => {
+    if (!window.confirm('Tem certeza que deseja assumir esta escala?')) return;
+    try {
+      await axios.post(`/substitution-requests/${reqId}/approve`, { substituteUserId: authUser?._id });
+      alert('Escala assumida com sucesso! Você foi adicionado à agenda.');
+      setPage(''); setTimeout(() => setPage('dashboard'), 0);
+    } catch (err) {
+      alert('Erro ao assumir escala');
+    }
+  };
 
   const handleTouchStart = (e: any, id: string) => {
     setTouchStartX(e.touches?.[0]?.clientX ?? null);
@@ -297,19 +340,6 @@ export default function App() {
     setPointerStartX(null);
     setDraggingId(null);
     try { (e?.target as Element)?.releasePointerCapture?.(e?.pointerId); } catch (err) {}
-  };
-
-  const openMaps = (address?: string) => {
-    if (!address) return alert('Endereço não disponível');
-    const q = encodeURIComponent(address);
-    // try Apple Maps first (iOS), then fallback to Google Maps
-    // Using location href for native maps; also open Google Maps after short delay as fallback
-    try {
-      window.location.href = `maps://maps.apple.com/?q=${q}`;
-      setTimeout(() => { window.open(`https://www.google.com/maps/search/?api=1&query=${q}`, '_blank'); }, 700);
-    } catch (err) {
-      window.open(`https://www.google.com/maps/search/?api=1&query=${q}`, '_blank');
-    }
   };
 
   // if showing the login page and not authenticated, render only the login card
@@ -416,6 +446,67 @@ export default function App() {
                     <p>Bem-vindo ao sistema de escalas — abaixo estão seus próximos serviços.</p>
                   </section>
 
+                  {isAdmin && substitutionRequests.filter(r => r.status === 'PENDING').length > 0 && (
+                    <div style={{ margin: '16px 0', padding: 16, backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8 }}>
+                      <h3 
+                        style={{ margin: '0', color: '#b45309', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}
+                        onClick={() => setShowPendingRequests(!showPendingRequests)}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span>🔔</span> Solicitações de Troca Pendentes ({substitutionRequests.filter(r => r.status === 'PENDING').length})
+                        </div>
+                        <span>{showPendingRequests ? '▲' : '▼'}</span>
+                      </h3>
+                      {showPendingRequests && (
+                        <div style={{ display: 'grid', gap: 8, marginTop: 12 }}>
+                          {substitutionRequests.filter(r => r.status === 'PENDING').map(req => (
+                            <div key={req._id} style={{ background: '#fff', padding: 12, borderRadius: 6, border: '1px solid #fef3c7', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                              <div>
+                                <div style={{ fontWeight: 600 }}>{req.originalUserId?.name} quer ser substituído por {req.substituteUserId?.name}</div>
+                                <div style={{ fontSize: 13, color: '#64748b' }}>
+                                  Escala: {req.eventId?.title || req.eventId?.locationId?.name} - {new Date(req.eventId?.date).toLocaleDateString('pt-BR')} às {req.eventId?.time?.start}
+                                </div>
+                                {isAdmin && req.reason && <div style={{ fontSize: 13, fontStyle: 'italic', marginTop: 4 }}>"{req.reason}"</div>}
+                              </div>
+                              <div style={{ display: 'flex', gap: 8 }}>
+                                <button className="btn" style={{ background: '#10b981', borderColor: '#10b981' }} onClick={() => handleApproveRequest(req._id)}>Aprovar</button>
+                                <button className="btn secondary" style={{ color: '#ef4444', borderColor: '#ef4444' }} onClick={() => handleRejectRequest(req._id)}>Recusar</button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {substitutionRequests.filter(r => r.status === 'OPEN').length > 0 && (
+                    <div style={{ margin: '16px 0', padding: 16, backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8 }}>
+                      <h3 style={{ margin: '0 0 12px 0', color: '#1d4ed8', display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span>🤝</span> Escalas Precisando de Ajuda
+                      </h3>
+                      <div style={{ display: 'grid', gap: 8 }}>
+                        {substitutionRequests.filter(r => r.status === 'OPEN').map(req => {
+                          const isMine = String(req.originalUserId?._id || req.originalUserId) === String(authUser._id);
+                          return (
+                            <div key={req._id} style={{ background: '#fff', padding: 12, borderRadius: 6, border: '1px solid #dbeafe', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                              <div>
+                                <div style={{ fontWeight: 600 }}>{req.originalUserId?.name} precisa de um substituto</div>
+                                <div style={{ fontSize: 13, color: '#64748b' }}>
+                                  Escala: {req.eventId?.title || req.eventId?.locationId?.name} - {new Date(req.eventId?.date).toLocaleDateString('pt-BR')} às {req.eventId?.time?.start}
+                                </div>
+                                {isAdmin && req.reason && <div style={{ fontSize: 13, fontStyle: 'italic', marginTop: 4 }}>"{req.reason}"</div>}
+                              </div>
+                              {!isMine && (
+                                <button className="btn" style={{ background: '#3b82f6', borderColor: '#3b82f6' }} onClick={() => handleTakeShift(req._id)}>Eu posso assumir</button>
+                              )}
+                              {isMine && <span style={{ fontSize: 13, color: '#64748b', fontWeight: 500 }}>Aguardando voluntário...</span>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
                   {authUser?.suspendedUntil && new Date(authUser.suspendedUntil) > new Date() && (
                     <div style={{ margin: '16px 0', padding: 16, backgroundColor: '#fef2f2', border: '1px solid #f87171', borderRadius: 8, color: '#b91c1c', display: 'flex', alignItems: 'center', gap: 12 }}>
                       <span style={{ fontSize: 24 }}>⛔</span>
@@ -474,6 +565,7 @@ export default function App() {
                                     return (
                                       <div key={ev._id} style={{ position: 'relative' }}>
                                         <div
+                                          onClick={() => { if (!draggingId && !swipedId) setSelectedEventForModal(ev); }}
                                           onTouchStart={(e) => handleTouchStart(e, ev._id)}
                                           onTouchMove={(e) => handleTouchMove(e)}
                                           onTouchEnd={() => handleTouchEnd()}
@@ -482,7 +574,7 @@ export default function App() {
                                           onPointerUp={(e) => handlePointerUp(e)}
                                           style={{
                                             background: '#fff', padding: 12, borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.05)', display: 'flex', gap: 12, alignItems: 'center', borderLeft: borderColor ? `9px solid ${borderColor}` : '1px solid #e2e8f0',
-                                            transform: swipedId === ev._id ? 'translateX(-190px)' : 'translateX(0)', transition: 'transform 180ms ease-out', touchAction: 'pan-y', userSelect: 'none'
+                                            transform: swipedId === ev._id ? 'translateX(-90px)' : 'translateX(0)', transition: 'transform 180ms ease-out', touchAction: 'pan-y', userSelect: 'none', cursor: 'pointer'
                                           }}
                                         >
                                           <div style={{ width: 60, fontWeight: 700, fontSize: 16, color: '#334155' }}>{ev.time?.start || '—'}</div>
@@ -505,7 +597,6 @@ export default function App() {
                                             ) : (
                                               <button className="btn secondary" onClick={() => handleCheckIn(ev._id)}>Check-in</button>
                                             )}
-                                            <button className="btn" onClick={() => { openMaps(addr); setSwipedId(null); }}>Mapa</button>
                                           </div>
                                         )}
                                       </div>
@@ -520,6 +611,23 @@ export default function App() {
                       </div>
                     )}
                   </section>
+                  
+                  {selectedEventForModal && (
+                    <EventDetailsModal 
+                      event={selectedEventForModal} 
+                      authUser={authUser} 
+                      users={users} 
+                      existingRequest={substitutionRequests.find(r => 
+                        (r.status === 'PENDING' || r.status === 'OPEN') && 
+                        String(r.eventId?._id || r.eventId) === String(selectedEventForModal._id) && 
+                        String(r.originalUserId?._id || r.originalUserId) === String(authUser._id)
+                      )}
+                      onClose={() => setSelectedEventForModal(null)}
+                      onRequestSubmitted={() => {
+                        setPage(''); setTimeout(() => setPage('dashboard'), 0);
+                      }}
+                    />
+                  )}
                 </>
               )}
 
