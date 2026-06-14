@@ -17,7 +17,11 @@ const UserSchema = new Schema({
   passwordHash: { type: String, select: false },
   mustChangePassword: { type: Boolean, default: false },
   archived: { type: Boolean, default: false },
-  suspendedUntil: { type: Date }
+  suspendedUntil: { type: Date },
+  notifications: [{
+    message: { type: String, required: true },
+    date: { type: Date, default: Date.now }
+  }]
 }, { timestamps: true });
 
 export default model('User', UserSchema);

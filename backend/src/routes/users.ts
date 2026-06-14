@@ -207,4 +207,18 @@ router.delete('/', async (req, res) => {
   }
 });
 
+router.post('/:id/notifications/:notifId/dismiss', async (req, res) => {
+  try {
+    const { id, notifId } = req.params;
+    const user = await User.findById(id);
+    if (!user) return res.status(404).json({ error: 'user not found' });
+
+    (user as any).notifications = ((user as any).notifications || []).filter((n: any) => String(n._id) !== notifId);
+    await user.save();
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'failed to dismiss notification', details: (err as any)?.message });
+  }
+});
+
 export default router;

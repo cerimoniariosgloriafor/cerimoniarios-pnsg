@@ -175,7 +175,12 @@ export default function EventDetailsModal({ event, authUser, users, existingRequ
                 <label>Selecione o Substituto</label>
                 <select className="input" value={substituteId} onChange={e => setSubstituteId(e.target.value)} required>
                   <option value="">-- Selecione --</option>
-                  {users.filter(u => String(u._id) !== String(authUser._id) && !u.archived).map(u => (
+                  {users.filter(u => {
+                    if (String(u._id) === String(authUser._id)) return false;
+                    if (u.archived) return false;
+                    if (u.suspendedUntil && new Date(u.suspendedUntil) >= new Date(event.date)) return false;
+                    return true;
+                  }).sort((a, b) => a.name.localeCompare(b.name)).map(u => (
                     <option key={u._id} value={u._id}>{u.name}</option>
                   ))}
                 </select>

@@ -77,8 +77,20 @@ export default function App() {
   const [swipedId, setSwipedId] = useState<string | null>(null);
   const [pointerStartX, setPointerStartX] = useState<number | null>(null);
   const [showPendingRequests, setShowPendingRequests] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
   const isServo = !!(authUser && authUser.role === 'servo');
   const isAdmin = !!(authUser && authUser.role === 'admin');
+
+  const handleDismissNotification = async (notifId: string) => {
+    if (!authUser) return;
+    try {
+      await axios.post(`/users/${authUser._id}/notifications/${notifId}/dismiss`);
+      const updatedUser = { ...authUser, notifications: (authUser.notifications || []).filter((n: any) => String(n._id) !== notifId) };
+      setUser(updatedUser);
+    } catch (err) {
+      console.error('Failed to dismiss notification', err);
+    }
+  };
 
   const handleLogin = async (identity: string, password: string) => {
     try {
@@ -262,7 +274,22 @@ export default function App() {
         });
         
         setDashboardEvents(mine);
-        setSubstitutionRequests(reqRes.data || []);
+
+        const now = new Date();
+        const validRequests = (reqRes.data || []).filter((req: any) => {
+          if (!req.eventId || !req.eventId.date) return false;
+          const dateStr = String(req.eventId.date).substring(0, 10);
+          const [yStr, mStr, dStr] = dateStr.split('-');
+          const eventDate = new Date(parseInt(yStr, 10), parseInt(mStr, 10) - 1, parseInt(dStr, 10));
+          if (req.eventId.time && req.eventId.time.start) {
+            const [hours, minutes] = req.eventId.time.start.split(':');
+            eventDate.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
+          } else {
+            eventDate.setHours(23, 59, 59, 999);
+          }
+          return eventDate >= now;
+        });
+        setSubstitutionRequests(validRequests);
       } catch (err) {
         console.error('load dashboard data', err);
         setDashboardEvents([]);
@@ -294,10 +321,10 @@ export default function App() {
   };
 
   const handleTakeShift = async (reqId: string) => {
-    if (!window.confirm('Tem certeza que deseja assumir esta escala?')) return;
+    if (!window.confirm('Tem certeza que deseja assumir esta escala? Ela será enviada para aprovação.')) return;
     try {
-      await axios.post(`/substitution-requests/${reqId}/approve`, { substituteUserId: authUser?._id });
-      alert('Escala assumida com sucesso! Você foi adicionado à agenda.');
+      await axios.post(`/substitution-requests/${reqId}/volunteer`, { substituteUserId: authUser?._id });
+      alert('Solicitação de voluntariado enviada! Aguardando aprovação.');
       setPage(''); setTimeout(() => setPage('dashboard'), 0);
     } catch (err) {
       alert('Erro ao assumir escala');
@@ -355,11 +382,39 @@ export default function App() {
 
   return (
     <div className="app-root">
-      <header className="app-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <header className="app-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative', zIndex: 100 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <button className="menu-btn" onClick={() => setSidebarOpen(s => !s)} aria-label="Toggle menu">☰</button>
           <h1 className="app-title" style={{ cursor: 'pointer', margin: 0 }} onClick={() => navigate('/')}>Cerimoniários PNSG</h1>
         </div>
+        {authUser && authUser.notifications && authUser.notifications.length > 0 && (
+          <div style={{ position: 'relative' }}>
+            <button 
+              className="menu-btn" 
+              onClick={() => setShowNotifications(!showNotifications)}
+              style={{ position: 'relative', fontSize: 24, cursor: 'pointer' }}
+              aria-label="Notificações"
+            >
+              🔔
+              <span style={{ position: 'absolute', top: -2, right: -4, background: '#ef4444', color: '#fff', fontSize: 10, fontWeight: 'bold', padding: '2px 6px', borderRadius: 10 }}>
+                {authUser.notifications.length}
+              </span>
+            </button>
+            {showNotifications && (
+              <div style={{ position: 'absolute', right: 0, top: 40, width: 300, background: '#fff', borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.15)', zIndex: 100, border: '1px solid #e2e8f0', color: '#1e293b' }}>
+                <div style={{ padding: '12px 16px', fontWeight: 600, borderBottom: '1px solid #e2e8f0' }}>Notificações</div>
+                <div style={{ maxHeight: 300, overflowY: 'auto' }}>
+                  {authUser.notifications.map((n: any) => (
+                    <div key={n._id} style={{ padding: '12px 16px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                      <div style={{ fontSize: 14 }}>{n.message}</div>
+                      <button onClick={() => handleDismissNotification(n._id)} style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: 18 }} aria-label="Descartar">×</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </header>
 
       <div className="app-body">
@@ -479,7 +534,7 @@ export default function App() {
                     </div>
                   )}
 
-                  {substitutionRequests.filter(r => r.status === 'OPEN').length > 0 && (
+                  {(!authUser?.archived && (!authUser?.suspendedUntil || new Date(authUser.suspendedUntil) < new Date())) && substitutionRequests.filter(r => r.status === 'OPEN').length > 0 && (
                     <div style={{ margin: '16px 0', padding: 16, backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8 }}>
                       <h3 style={{ margin: '0 0 12px 0', color: '#1d4ed8', display: 'flex', alignItems: 'center', gap: 8 }}>
                         <span>🤝</span> Escalas Precisando de Ajuda

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import SubstitutionRequest from '../models/substitutionRequest';
 import AgendaEvent from '../models/agendaEvent';
+import User from '../models/user';
 
 const router = Router();
 
@@ -34,7 +35,24 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Admin approves a request, or a user takes an OPEN request
+// A user volunteers to take an OPEN request (needs admin approval)
+router.post('/:id/volunteer', async (req, res) => {
+  try {
+    const { substituteUserId } = req.body;
+    const request = await SubstitutionRequest.findById(req.params.id);
+    if (!request) return res.status(404).json({ error: 'Not found' });
+    if (request.status !== 'OPEN') return res.status(400).json({ error: 'Request is not OPEN' });
+
+    request.substituteUserId = substituteUserId;
+    request.status = 'PENDING';
+    await request.save();
+    res.json(request);
+  } catch (err: any) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Admin approves a request
 router.post('/:id/approve', async (req, res) => {
   try {
     const { substituteUserId } = req.body; // Can be provided if someone is taking an OPEN request
@@ -58,6 +76,24 @@ router.post('/:id/approve', async (req, res) => {
 
     request.status = 'APPROVED';
     await request.save();
+
+    const originalUser = await User.findById(request.originalUserId);
+    if (originalUser) {
+      const msg = request.substituteUserId 
+        ? 'Sua solicitação de substituição foi APROVADA.' 
+        : 'Seu pedido de ajuda foi APROVADO.';
+      (originalUser as any).notifications.push({ message: msg });
+      await originalUser.save();
+    }
+    
+    if (request.substituteUserId) {
+      const substituteUser = await User.findById(request.substituteUserId);
+      if (substituteUser) {
+        (substituteUser as any).notifications.push({ message: `Sua substituição para o irmão ${originalUser?.name || ''} foi APROVADA.` });
+        await substituteUser.save();
+      }
+    }
+
     res.json(request);
   } catch (err: any) {
     res.status(400).json({ error: err.message });
@@ -72,6 +108,24 @@ router.post('/:id/reject', async (req, res) => {
     
     request.status = 'REJECTED';
     await request.save();
+
+    const originalUser = await User.findById(request.originalUserId);
+    if (originalUser) {
+      const msg = request.substituteUserId 
+        ? 'Sua solicitação de substituição foi RECUSADA.' 
+        : 'Seu pedido de ajuda foi RECUSADO/CANCELADO.';
+      (originalUser as any).notifications.push({ message: msg });
+      await originalUser.save();
+    }
+
+    if (request.substituteUserId) {
+      const substituteUser = await User.findById(request.substituteUserId);
+      if (substituteUser) {
+        (substituteUser as any).notifications.push({ message: `Sua substituição para o irmão ${originalUser?.name || ''} foi RECUSADA.` });
+        await substituteUser.save();
+      }
+    }
+
     res.json(request);
   } catch (err: any) {
     res.status(400).json({ error: err.message });
