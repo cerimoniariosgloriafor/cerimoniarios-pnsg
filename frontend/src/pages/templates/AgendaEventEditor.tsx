@@ -264,7 +264,11 @@ export default function AgendaEventEditor({ predate, id }: { predate?: string, i
                    setAssignedUsers(prev => [...prev, { userId: uid, roles: [] }]);
                  }} style={{ flex: 1, padding: 8, border: '1px solid #e5e7eb', borderRadius: 6 }}>
                    <option value="">Adicionar usuário...</option>
-                   {users.map(u => <option key={u._id} value={u._id}>{u.name}</option>)}
+                   {users
+                   .filter(u => !u.archived)
+                   .sort((a, b) => a.name.localeCompare(b.name))
+                   .map(u => <option key={u._id} value={u._id}>{u.name}</option>)
+                   }
                  </select>
                  <div style={{ width: 120, color: '#666', alignSelf: 'center' }}>Funções</div>
                </div>

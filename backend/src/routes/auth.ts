@@ -19,12 +19,13 @@ function signAccess(user: any) {
 router.post('/login', async (req, res) => {
   try {
     const { identity, password } = req.body; // identity = email or phone
-    if (!identity || !password) return res.status(400).json({ error: 'identity and password required' });
+    if (!identity || !password) return res.status(400).json({ error: 'Login e senha são obrigatórios' });
     const user = await User.findOne({ $or: [{ email: identity }, { phone: identity }] }).select('+passwordHash');
-    if (!user) return res.status(401).json({ error: 'invalid credentials' });
-    if (!user.passwordHash) return res.status(401).json({ error: 'no password set for user' });
+    if (!user) return res.status(401).json({ error: 'Credenciais inválidas' });
+    if ((user as any).archived) return res.status(403).json({ error: 'Usuário desativado não pode fazer login.' });
+    if (!user.passwordHash) return res.status(401).json({ error: 'Nenhuma senha definida para o usuário' });
     const ok = await bcrypt.compare(password, (user as any).passwordHash);
-    if (!ok) return res.status(401).json({ error: 'invalid credentials' });
+    if (!ok) return res.status(401).json({ error: 'Credenciais inválidas' });
 
     const access = signAccess(user);
 

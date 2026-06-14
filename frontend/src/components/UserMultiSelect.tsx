@@ -19,7 +19,9 @@ export default function UserMultiSelect({ users, value = [], onChange }: any) {
     else onChange([...(value || []), id]);
   };
 
-  const filtered = users.filter((u: any) => u.name.toLowerCase().includes(filter.toLowerCase()));
+  const filtered = users
+    .filter((u: any) => !u.archived && u.name.toLowerCase().includes(filter.toLowerCase()))
+    .sort((a: any, b: any) => a.name.localeCompare(b.name));
 
   return (
     <div className="multi-select" ref={ref}>
