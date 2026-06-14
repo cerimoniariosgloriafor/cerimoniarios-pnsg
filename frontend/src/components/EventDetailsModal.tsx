@@ -38,6 +38,7 @@ export default function EventDetailsModal({ event, authUser, users, existingRequ
       alert('Solicitação enviada com sucesso!');
       onRequestSubmitted();
       onClose();
+      window.location.reload();
     } catch (err) {
       console.error(err);
       alert('Erro ao enviar solicitação.');
@@ -56,6 +57,7 @@ export default function EventDetailsModal({ event, authUser, users, existingRequ
       alert('Solicitação cancelada com sucesso!');
       onRequestSubmitted();
       onClose();
+      window.location.reload();
     } catch (err) {
       console.error(err);
       alert('Erro ao cancelar solicitação.');
