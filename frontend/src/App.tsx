@@ -328,8 +328,7 @@ export default function App() {
     try {
       await axios.post(`/substitution-requests/${reqId}/approve`, { substituteUserId });
       alert('Solicitação aprovada e escala atualizada!');
-      // Refetch
-      setPage(''); setTimeout(() => setPage('dashboard'), 0); // Hack to trigger refetch
+      window.location.reload();
     } catch (err) {
       alert('Erro ao aprovar solicitação');
     }
@@ -339,7 +338,7 @@ export default function App() {
     try {
       await axios.post(`/substitution-requests/${reqId}/reject`);
       alert('Solicitação recusada!');
-      setPage(''); setTimeout(() => setPage('dashboard'), 0);
+      window.location.reload();
     } catch (err) {
       alert('Erro ao recusar solicitação');
     }
@@ -350,7 +349,7 @@ export default function App() {
     try {
       await axios.post(`/substitution-requests/${reqId}/volunteer`, { substituteUserId: authUser?._id });
       alert('Solicitação de voluntariado enviada! Aguardando aprovação.');
-      setPage(''); setTimeout(() => setPage('dashboard'), 0);
+      window.location.reload();
     } catch (err) {
       alert('Erro ao assumir escala');
     }
@@ -672,7 +671,7 @@ export default function App() {
                       )}
                       onClose={() => setSelectedEventForModal(null)}
                       onRequestSubmitted={() => {
-                        setPage(''); setTimeout(() => setPage('dashboard'), 0);
+                        window.location.reload();
                       }}
                     />
                   )}
