@@ -177,4 +177,26 @@ router.post('/:id/checkin', async (req, res) => {
   }
 });
 
+router.post('/:id/cancel-checkin', async (req, res) => {
+  try {
+    const AgendaEvent = require('../models/agendaEvent').default;
+    const { userId } = req.body;
+    if (!userId) return res.status(400).json({ error: 'userId required' });
+
+    const event = await AgendaEvent.findById(req.params.id);
+    if (!event) return res.status(404).json({ error: 'event not found' });
+
+    const userEntry = event.users.find((u: any) => String(u.userId) === String(userId));
+    if (!userEntry) return res.status(400).json({ error: 'user not assigned to this event' });
+
+    userEntry.checkedInAt = null;
+    await event.save();
+    
+    res.json({ success: true, checkedInAt: null });
+  } catch (err) {
+    console.error('agendaEvents cancel checkin error', err);
+    res.status(500).json({ error: 'failed to cancel checkin', details: (err as any)?.message });
+  }
+});
+
 export default router;

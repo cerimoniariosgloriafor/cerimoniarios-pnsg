@@ -72,10 +72,6 @@ export default function App() {
   const [dashboardEvents, setDashboardEvents] = useState<any[]>([]);
   const [substitutionRequests, setSubstitutionRequests] = useState<any[]>([]);
   const [selectedEventForModal, setSelectedEventForModal] = useState<any | null>(null);
-  const [touchStartX, setTouchStartX] = useState<number | null>(null);
-  const [draggingId, setDraggingId] = useState<string | null>(null);
-  const [swipedId, setSwipedId] = useState<string | null>(null);
-  const [pointerStartX, setPointerStartX] = useState<number | null>(null);
   const [showPendingRequests, setShowPendingRequests] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const isServo = !!(authUser && authUser.role === 'servo');
@@ -151,7 +147,6 @@ export default function App() {
           }
           return ev;
         }));
-        setSwipedId(null);
       }
     } catch (err) {
       console.error('checkin failed', err);
@@ -359,44 +354,6 @@ export default function App() {
     } catch (err) {
       alert('Erro ao assumir escala');
     }
-  };
-
-  const handleTouchStart = (e: any, id: string) => {
-    setTouchStartX(e.touches?.[0]?.clientX ?? null);
-    setDraggingId(id);
-  };
-
-  const handleTouchMove = (e: any) => {
-    if (!draggingId || touchStartX === null) return;
-    const x = e.touches?.[0]?.clientX ?? null;
-    if (x === null) return;
-    const dx = x - touchStartX;
-    if (dx < -40) setSwipedId(draggingId);
-    if (dx > 40) setSwipedId(null);
-  };
-
-  const handleTouchEnd = () => { setTouchStartX(null); setDraggingId(null); };
-
-  const handlePointerDown = (e: any, id: string) => {
-    // support mouse and stylus
-    setPointerStartX(e.clientX ?? null);
-    setDraggingId(id);
-    try { (e.target as Element).setPointerCapture?.(e.pointerId); } catch (err) {}
-  };
-
-  const handlePointerMove = (e: any) => {
-    if (!draggingId || pointerStartX === null) return;
-    const x = e.clientX ?? null;
-    if (x === null) return;
-    const dx = x - pointerStartX;
-    if (dx < -40) setSwipedId(draggingId);
-    if (dx > 40) setSwipedId(null);
-  };
-
-  const handlePointerUp = (e?: any) => {
-    setPointerStartX(null);
-    setDraggingId(null);
-    try { (e?.target as Element)?.releasePointerCapture?.(e?.pointerId); } catch (err) {}
   };
 
   // if showing the login page and not authenticated, render only the login card
@@ -672,16 +629,10 @@ export default function App() {
                                     return (
                                       <div key={ev._id} style={{ position: 'relative' }}>
                                         <div
-                                          onClick={() => { if (!draggingId && !swipedId) setSelectedEventForModal(ev); }}
-                                          onTouchStart={(e) => handleTouchStart(e, ev._id)}
-                                          onTouchMove={(e) => handleTouchMove(e)}
-                                          onTouchEnd={() => handleTouchEnd()}
-                                          onPointerDown={(e) => handlePointerDown(e, ev._id)}
-                                          onPointerMove={(e) => handlePointerMove(e)}
-                                          onPointerUp={(e) => handlePointerUp(e)}
+                                          onClick={() => setSelectedEventForModal(ev)}
                                           style={{
                                             background: '#fff', padding: 12, borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.05)', display: 'flex', gap: 12, alignItems: 'center', borderLeft: borderColor ? `9px solid ${borderColor}` : '1px solid #e2e8f0',
-                                            transform: swipedId === ev._id ? 'translateX(-90px)' : 'translateX(0)', transition: 'transform 180ms ease-out', touchAction: 'pan-y', userSelect: 'none', cursor: 'pointer'
+                                            cursor: 'pointer'
                                           }}
                                         >
                                           <div style={{ width: 60, fontWeight: 700, fontSize: 16, color: '#334155' }}>{ev.time?.start || '—'}</div>
@@ -695,17 +646,7 @@ export default function App() {
                                               </span>
                                             </div>
                                           </div>
-                                          <div style={{ color: '#94a3b8', fontSize: 18, fontWeight: 'bold' }} aria-hidden>‹‹</div>
                                         </div>
-                                        {swipedId === ev._id && (
-                                          <div style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', display: 'flex', gap: 8 }}>
-                                            {myUser.checkedInAt ? (
-                                              <button className="btn" style={{ background: '#16a34a', borderColor: '#16a34a', color: '#fff' }} onClick={() => { navigate('/agenda/' + ev._id + '/report'); setSwipedId(null); }}>✅ Feito</button>
-                                            ) : (
-                                              <button className="btn secondary" onClick={() => handleCheckIn(ev._id)}>Check-in</button>
-                                            )}
-                                          </div>
-                                        )}
                                       </div>
                                     );
                                   })}
