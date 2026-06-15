@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
 
 interface EventDetailsModalProps {
@@ -17,6 +17,7 @@ export default function EventDetailsModal({ event, authUser, users, existingRequ
   const [reason, setReason] = useState('');
   const [reasonError, setReasonError] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [locLoading, setLocLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,13 +67,103 @@ export default function EventDetailsModal({ event, authUser, users, existingRequ
     }
   };
 
+  const addr = event.locationId?.address || event.locationAddress || event.address;
+
+  const handleCheckIn = async () => {
+    if (!addr) {
+      alert('Local não possui endereço cadastrado.');
+      return;
+    }
+    const match = addr.match(/([-+]?\d{1,3}\.\d+)\s*,\s*([-+]?\d{1,3}\.\d+)/);
+    if (!match) {
+      alert('Endereço do local não possui coordenadas válidas (ex: -23.5505, -46.6333). Peça ao administrador para atualizar o endereço do local com as coordenadas exatas.');
+      return;
+    }
+    const locLat = parseFloat(match[1]);
+    const locLng = parseFloat(match[2]);
+
+    if (!navigator.geolocation) {
+      alert('Seu navegador não suporta geolocalização.');
+      return;
+    }
+
+    setLocLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const userLat = position.coords.latitude;
+        const userLng = position.coords.longitude;
+        
+        // Haversine formula
+        const R = 6371e3; // metres
+        const lat1 = locLat * Math.PI/180;
+        const lat2 = userLat * Math.PI/180;
+        const dLat = (userLat-locLat) * Math.PI/180;
+        const dLng = (userLng-locLng) * Math.PI/180;
+
+        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                  Math.cos(lat1) * Math.cos(lat2) *
+                  Math.sin(dLng/2) * Math.sin(dLng/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        const distance = R * c;
+
+        if (distance > 500) {
+          alert(`Você está a ${Math.round(distance)} metros do local. O check-in só é permitido a uma distância máxima de 500 metros.`);
+          setLocLoading(false);
+          return;
+        }
+
+        if (window.confirm('Deseja fazer o Check-In?')) {
+          try {
+            await axios.post(`/agenda-events/${event._id}/checkin`, { userId: authUser._id });
+            alert('Check-in realizado com sucesso!');
+            onRequestSubmitted();
+            onClose();
+            window.location.reload();
+          } catch (err) {
+            console.error(err);
+            alert('Erro ao realizar check-in.');
+          } finally {
+            setLocLoading(false);
+          }
+        } else {
+          setLocLoading(false);
+        }
+      },
+      (error) => {
+        let errorMsg = 'Não foi possível obter sua localização. Verifique as permissões do navegador.';
+        if (error.code === error.PERMISSION_DENIED) errorMsg = 'Permissão de localização negada pelo usuário.';
+        if (error.code === error.POSITION_UNAVAILABLE) errorMsg = 'Informação de localização indisponível.';
+        if (error.code === error.TIMEOUT) errorMsg = 'Tempo limite esgotado ao buscar localização.';
+        alert(errorMsg);
+        setLocLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  };
+
+  const handleCancelCheckIn = async () => {
+    if (!window.confirm('Tem certeza que deseja cancelar seu Check-In?')) return;
+    
+    setLoading(true);
+    try {
+      await axios.post(`/agenda-events/${event._id}/cancel-checkin`, { userId: authUser._id });
+      alert('Check-in cancelado com sucesso!');
+      onRequestSubmitted();
+      onClose();
+      window.location.reload();
+    } catch (err) {
+      console.error(err);
+      alert('Erro ao cancelar check-in.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const modalStyle: React.CSSProperties = { position: 'fixed', left: 0, right: 0, top: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(2,6,23,0.4)', zIndex: 300, padding: 16 };
   const modalCard: React.CSSProperties = { background: '#fff', padding: 24, borderRadius: 12, width: '100%', maxWidth: 420, maxHeight: '90vh', overflowY: 'auto' };
 
   const myUser = (event.users || []).find((u: any) => String(u.userId?._id || u.userId) === String(authUser._id));
   const otherUsers = (event.users || []).filter((u: any) => String(u.userId?._id || u.userId) !== String(authUser._id));
-
-  const addr = event.locationId?.address || event.locationAddress || event.address;
 
   const openMaps = () => {
     if (!addr) return alert('Endereço não disponível');
@@ -103,6 +194,7 @@ export default function EventDetailsModal({ event, authUser, users, existingRequ
             {new Date(event.date).toLocaleDateString('pt-BR')} às {event.time?.start || '—'}
           </div>
           {event.priestName && <div style={{ color: '#64748b', fontSize: 14 }}>Celebrante: {event.priestName}</div>}
+          {event.locationId?.name && <div style={{ color: '#64748b', fontSize: 14 }}>Local: {event.locationId.name}</div>}
         </div>
 
         <div style={{ marginBottom: 20 }}>
@@ -134,7 +226,35 @@ export default function EventDetailsModal({ event, authUser, users, existingRequ
             <button className="btn" style={{ width: '100%', justifyContent: 'center' }} onClick={openMaps}>
               Ver no Mapa
             </button>
-            {existingRequest ? (
+            
+            {myUser?.checkedInAt && (
+              <button className="btn" style={{ width: '100%', justifyContent: 'center', background: '#3b82f6', borderColor: '#3b82f6', color: '#fff' }} onClick={() => {
+                window.history.pushState({}, '', `/agenda/${event._id}/report`);
+                window.dispatchEvent(new PopStateEvent('popstate'));
+                onClose();
+              }}>
+                Relatório da Missa
+              </button>
+            )}
+
+            {myUser?.checkedInAt ? (
+              <div style={{ background: '#ecfdf5', padding: 12, borderRadius: 8, border: '1px solid #a7f3d0', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div>
+                    <div style={{ fontWeight: 600, color: '#047857', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                      Check-In Realizado
+                    </div>
+                    <div style={{ fontSize: 13, color: '#065f46', marginTop: 4 }}>
+                      Em {new Date(myUser.checkedInAt).toLocaleString('pt-BR')}
+                    </div>
+                  </div>
+                </div>
+                <button className="btn secondary" style={{ width: '100%', justifyContent: 'center', color: '#ef4444', borderColor: '#ef4444', backgroundColor: 'transparent' }} onClick={handleCancelCheckIn} disabled={loading}>
+                  {loading ? 'Cancelando...' : 'Cancelar Check-In'}
+                </button>
+              </div>
+            ) : existingRequest ? (
               <div style={{ background: '#fffbeb', padding: 12, borderRadius: 8, border: '1px solid #fde68a', display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div>
                   <div style={{ fontWeight: 600, color: '#b45309' }}>Solicitação de Substituição Pendente</div>
@@ -149,9 +269,14 @@ export default function EventDetailsModal({ event, authUser, users, existingRequ
                 </button>
               </div>
             ) : (
-              <button className="btn" style={{ width: '100%', justifyContent: 'center', background: '#f59e0b', borderColor: '#f59e0b', color: '#fff' }} onClick={() => setShowForm(true)}>
-                Não poderei ir / Solicitar Troca
-              </button>
+              <>
+                <button className="btn" style={{ width: '100%', justifyContent: 'center', background: '#10b981', borderColor: '#10b981', color: '#fff' }} onClick={handleCheckIn} disabled={locLoading}>
+                  {locLoading ? 'Verificando localização...' : 'Fazer Check-In'}
+                </button>
+                <button className="btn" style={{ width: '100%', justifyContent: 'center', background: '#f59e0b', borderColor: '#f59e0b', color: '#fff' }} onClick={() => setShowForm(true)} disabled={locLoading}>
+                  Não poderei ir / Solicitar Troca
+                </button>
+              </>
             )}
           </div>
         ) : (
