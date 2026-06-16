@@ -108,9 +108,14 @@ export default function TemplatesMonthlyPage() {
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
                     {g.items.map(t => (
                       <div key={t._id} className="card square" onClick={isServo ? undefined : () => openEditTemplate(t._id)} style={{ cursor: isServo ? 'default' : 'pointer' }}>
-                        <div style={{ fontWeight: 700 }}>{t.locationId?.name || '— local —'}</div>
+                        <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
+                          {t.locationId?.color && (
+                            <div style={{ width: 12, height: 12, borderRadius: '50%', background: t.locationId.color, flexShrink: 0, border: '1px solid rgba(0,0,0,0.1)' }} />
+                          )}
+                          <span>{t.locationId?.name || '— local —'}</span>
+                        </div>
                         <div style={{ color: '#64748b', marginTop: 6 }}>{t.time?.start || '—'}</div>
-                        <div style={{ marginTop: 10, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 4 }}>
                           {(t.users || []).slice(0,4).map((u: any) => (
                             <div key={u._id} className="chip">{u.name}</div>
                           ))}
@@ -146,9 +151,14 @@ export default function TemplatesMonthlyPage() {
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
                     {group.items.map(t => (
                       <div key={t._id} className="card square" onClick={isServo ? undefined : () => openEditTemplate(t._id)} style={{ cursor: isServo ? 'default' : 'pointer' }}>
-                        <div style={{ fontWeight: 700 }}>{t.locationId?.name || '— local —'}</div>
+                        <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
+                          {t.locationId?.color && (
+                            <div style={{ width: 12, height: 12, borderRadius: '50%', background: t.locationId.color, flexShrink: 0, border: '1px solid rgba(0,0,0,0.1)' }} />
+                          )}
+                          <span>{t.locationId?.name || '— local —'}</span>
+                        </div>
                         <div style={{ color: '#64748b', marginTop: 6 }}>{t.time?.start || '—'}</div>
-                        <div style={{ marginTop: 10, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 4 }}>
                           {(t.users || []).slice(0,4).map((u: any) => (
                             <div key={u._id} className="chip">{u.name}</div>
                           ))}

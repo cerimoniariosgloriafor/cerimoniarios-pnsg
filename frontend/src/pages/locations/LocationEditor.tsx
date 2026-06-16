@@ -1,11 +1,27 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 
+const PREDEFINED_COLORS = [
+  { hex: '#b7e1cd', label: 'Verde Claro' },
+  { hex: '#d9d2e9', label: 'Roxo Claro' },
+  { hex: '#fef08a', label: 'Amarelo' },
+  { hex: '#f4cccc', label: 'Vermelho Claro' },
+  { hex: '#fce5cd', label: 'Laranja Claro' },
+  { hex: '#c9daf8', label: 'Azul Centaúrea' },
+  { hex: '#f1c232', label: 'Amarelo Escuro' },
+  { hex: '#e2e8f0', label: 'Cinza' },
+  { hex: '#bfdbfe', label: 'Azul' },
+  { hex: '#bbf7d0', label: 'Verde' },
+  { hex: '#fecaca', label: 'Vermelho' },
+  { hex: '#fbcfe8', label: 'Rosa' },
+];
+
 export default function LocationEditor({ id, onSaved }: any) {
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [address, setAddress] = useState('');
+  const [color, setColor] = useState('');
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -19,6 +35,7 @@ export default function LocationEditor({ id, onSaved }: any) {
       setName(data.name || '');
       setDescription(data.description || '');
       setAddress(data.address || '');
+      setColor(data.color || '');
     }).catch(err => console.error('load location', err)).finally(() => setLoading(false));
     return () => { mounted = false };
   }, [id]);
@@ -32,8 +49,8 @@ export default function LocationEditor({ id, onSaved }: any) {
     e.preventDefault();
     setSaving(true);
     try {
-      if (id) await axios.post(`/locations/${id}`, { name, description, address });
-      else await axios.post('/locations', { name, description, address });
+      if (id) await axios.post(`/locations/${id}`, { name, description, address, color });
+      else await axios.post('/locations', { name, description, address, color });
       onSaved && onSaved();
       close();
     } catch (err) {
@@ -76,9 +93,42 @@ export default function LocationEditor({ id, onSaved }: any) {
             <div className="form-row">
               <input className="input" placeholder="Endereço" value={address} onChange={e => setAddress(e.target.value)} />
             </div>
+            
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', fontWeight: 600, fontSize: 13, color: '#444', marginBottom: 8 }}>Cor do Local</label>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  title="Sem cor"
+                  onClick={() => setColor('')}
+                  style={{
+                    width: 32, height: 32, borderRadius: '50%', border: '2px solid #ddd',
+                    background: '#fff', cursor: 'pointer',
+                    outline: color === '' ? '2px solid #64748b' : 'none', outlineOffset: 2,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  }}
+                >
+                  <span style={{ color: '#aaa', fontSize: 18, lineHeight: 1 }}>⊘</span>
+                </button>
+                {PREDEFINED_COLORS.map(c => (
+                  <button
+                    key={c.hex}
+                    type="button"
+                    title={c.label}
+                    onClick={() => setColor(c.hex)}
+                    style={{
+                      width: 32, height: 32, borderRadius: '50%', border: '1px solid rgba(0,0,0,0.1)',
+                      background: c.hex, cursor: 'pointer',
+                      outline: color === c.hex ? '2px solid #64748b' : 'none', outlineOffset: 2
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+
             <div style={{ display: 'flex', gap: 8 }}>
               <button className="btn" type="submit" disabled={saving}>{saving ? 'Salvando...' : (id ? 'Salvar' : 'Criar')}</button>
-              <button type="button" className="btn secondary" onClick={() => { setName(''); setDescription(''); setAddress(''); }}>Limpar</button>
+              <button type="button" className="btn secondary" onClick={() => { setName(''); setDescription(''); setAddress(''); setColor(''); }}>Limpar</button>
             </div>
           </form>
         )}
