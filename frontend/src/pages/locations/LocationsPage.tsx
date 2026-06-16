@@ -69,7 +69,14 @@ export default function LocationsPage({ locations, onCreated }: any) {
               <tbody>
                 {visible.map((l: any) => (
                   <tr key={l._id} onClick={() => openEdit(l._id)} style={{ cursor: 'pointer' }}>
-                    <td className="td-name"><span className="truncate">{l.name}</span></td>
+                    <td className="td-name">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        {l.color && (
+                          <div style={{ width: 12, height: 12, borderRadius: '50%', background: l.color, flexShrink: 0, border: '1px solid rgba(0,0,0,0.1)' }} />
+                        )}
+                        <span className="truncate">{l.name}</span>
+                      </div>
+                    </td>
                     <td className="td-sub"><span className="truncate">{l.description || '— sem descrição —'}</span></td>
                     <td className="td-actions">
                       <span style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
