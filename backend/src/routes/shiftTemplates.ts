@@ -140,7 +140,7 @@ router.post('/:id', async (req, res) => {
 
 router.delete('/:id', async (req, res) => {
   try {
-    const ShiftTemplate = require('../models/shifttemplate').default;
+    const ShiftTemplate = require('../models/shiftTemplate').default;
     const deleted = await ShiftTemplate.findByIdAndDelete(req.params.id);
     if (!deleted) return res.status(404).json({ error: 'template not found' });
     res.json({ success: true, id: deleted._id });
@@ -157,7 +157,7 @@ router.delete('/', async (req, res) => {
     if (confirmQuery !== 'yes' && headerConfirm !== 'true') {
       return res.status(400).json({ error: "confirmation required: provide ?confirm=yes or header 'X-Confirm-Delete: true'" });
     }
-    const ShiftTemplate = require('../models/shifttemplate').default;
+    const ShiftTemplate = require('../models/shiftTemplate').default;
     const result = await ShiftTemplate.deleteMany({});
     res.json({ success: true, deletedCount: result.deletedCount });
   } catch (err) {
