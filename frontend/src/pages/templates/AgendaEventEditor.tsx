@@ -36,6 +36,11 @@ export default function AgendaEventEditor({ predate, id }: { predate?: string, i
       try {
         const res = await axios.get('/shift-templates/occurrences', { params: { date } });
         const items = (res.data || []).map((it: any) => ({ template: it.template, occurrences: it.occurrences }));
+        items.sort((a: any, b: any) => {
+          const tA = a.template.time?.start || '';
+          const tB = b.template.time?.start || '';
+          return tA.localeCompare(tB);
+        });
         setTemplates(items);
       } catch (err) {
         console.error('load occurrences', err);
