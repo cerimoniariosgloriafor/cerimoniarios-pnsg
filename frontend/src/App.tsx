@@ -604,7 +604,9 @@ export default function App() {
                             const weekdayShort = weekdayLong.replace(/-feira/gi, '').replace(/ feira/gi, '').replace(/feira/gi, '');
                             const weekdayCap = weekdayShort ? (weekdayShort.charAt(0).toUpperCase() + weekdayShort.slice(1)) : '';
                             
-                            const isToday = new Date().toISOString().slice(0, 10) === dateStr;
+                            const nowObj = new Date();
+                            const todayStr = `${nowObj.getFullYear()}-${String(nowObj.getMonth() + 1).padStart(2, '0')}-${String(nowObj.getDate()).padStart(2, '0')}`;
+                            const isToday = todayStr === dateStr;
                             
                             return (
                               <div key={dateStr} style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>

@@ -14,9 +14,12 @@ export function expandTemplateOccurrences(template: any, rangeStart: Date, range
       return results;
     }
 
+    const recStart = new Date(rec.startDate);
+    const safeDtStart = new Date(recStart.getFullYear(), recStart.getMonth(), recStart.getDate(), 12, 0, 0);
+
     const rruleOptions: any = {
-      dtstart: new Date(rec.startDate),
-      until: rec.endDate ? new Date(rec.endDate) : rangeEnd,
+      dtstart: safeDtStart,
+      until: rec.endDate ? new Date(new Date(rec.endDate).getFullYear(), new Date(rec.endDate).getMonth(), new Date(rec.endDate).getDate(), 23, 59, 59) : rangeEnd,
       freq: RRule.WEEKLY,
       interval: 1
     };
@@ -75,9 +78,16 @@ export function expandTemplateOccurrences(template: any, rangeStart: Date, range
     const rule = new RRule(rruleOptions);
     const between = rule.between(rangeStart, rangeEnd, true);
 
-    const exceptions = (template.exceptions || []).map((d: string|Date) => new Date(d).toISOString());
+    const exceptions = (template.exceptions || []).map((d: string|Date) => {
+      const exD = new Date(d);
+      return `${exD.getFullYear()}-${exD.getMonth()}-${exD.getDate()}`;
+    });
+
     between.forEach((d: Date) => {
-      if (!exceptions.includes(d.toISOString())) results.push(d);
+      const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+      if (!exceptions.includes(key)) {
+        results.push(new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0));
+      }
     });
   } catch (err) {
     console.error('expandTemplateOccurrences error for template', template._id, err);
