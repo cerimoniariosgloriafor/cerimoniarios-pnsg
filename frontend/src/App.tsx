@@ -12,6 +12,7 @@ import TemplatesMonthlyPage from './pages/templates/TemplatesMonthlyPage';
 import AgendaPage from './pages/templates/AgendaPage';
 import AgendaEventEditor from './pages/templates/AgendaEventEditor';
 import EventReportPage from './pages/dashboard/EventReportPage';
+import MassReportPage from './pages/reports/MassReportPage';
 import LoginPage from './pages/auth/LoginPage';
 import ChangePasswordModal from './components/ChangePasswordModal';
 import RoleFunctionsPage from './pages/functions/RoleFunctionsPage';
@@ -41,6 +42,7 @@ export default function App() {
     if (p === '/templates/new') return 'template_new';
     if (p === '/templates/weekly') return 'templates_weekly';
     if (p === '/templates/monthly') return 'templates_monthly';
+    if (p === '/reports/masses') return 'reports_masses';
     if (p === '/functions') return 'functions';
     if (p === '/agenda') return 'templates_agenda';
     if (p === '/agenda/new') return 'agenda_new';
@@ -74,6 +76,7 @@ export default function App() {
   const [selectedEventForModal, setSelectedEventForModal] = useState<any | null>(null);
   const [showPendingRequests, setShowPendingRequests] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showRecentEvents, setShowRecentEvents] = useState(false);
   const isServo = !!(authUser && authUser.role === 'servo');
   const isAdmin = !!(authUser && authUser.role === 'admin');
 
@@ -116,6 +119,17 @@ export default function App() {
     } catch (err) {
       console.error('Failed to dismiss notification', err);
     }
+  };
+
+  const toLocalDateKey = (value: string | Date) => {
+    const d = new Date(value);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+
+  const shiftDateKey = (offsetDays: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() + offsetDays);
+    return toLocalDateKey(d);
   };
 
   const handleLogin = async (identity: string, password: string) => {
@@ -183,6 +197,8 @@ export default function App() {
       setPage('templates_weekly'); setCurrentId(null);
     } else if (normalized === '/templates/monthly') {
       setPage('templates_monthly'); setCurrentId(null);
+    } else if (normalized === '/reports/masses') {
+      setPage('reports_masses'); setCurrentId(null);
     } else if (normalized === '/functions') {
       setPage('functions'); setCurrentId(null);
     } else if (normalized === '/agenda') {
@@ -271,11 +287,7 @@ export default function App() {
     }
     const fetchDashboardData = async () => {
       try {
-        const d = new Date();
-        const y = d.getFullYear();
-        const m = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        const startDate = `${y}-${m}-${day}`;
+        const startDate = shiftDateKey(-3);
         
         const [evRes, reqRes] = await Promise.all([
           axios.get('/agenda-events', { params: { startDate } }),
@@ -440,6 +452,11 @@ export default function App() {
                     <span className="icon">⚙️</span>
                     <span className="label">Funções</span>
                   </button>
+
+                  <button className="nav-btn" onClick={() => navigate('/reports/masses')}>
+                    <span className="icon">📊</span>
+                    <span className="label">Relatório</span>
+                  </button>
                 </>
               )}
 
@@ -581,84 +598,137 @@ export default function App() {
                   )}
 
                   <section style={{ marginTop: 12 }}>
-                    {dashboardEvents.length === 0 ? (
-                      <div style={{ color: '#666' }}>Nenhuma escala para você nos próximos dias. <button className="btn" onClick={() => navigate('/agenda')} style={{ marginLeft: 8 }}>Ver agenda</button></div>
-                    ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-                        {(() => {
-                          const grouped = dashboardEvents.reduce((acc: any, ev: any) => {
-                            const dateStr = new Date(ev.date).toISOString().slice(0, 10);
-                            if (!acc[dateStr]) acc[dateStr] = [];
-                            acc[dateStr].push(ev);
-                            return acc;
-                          }, {});
-                          
-                          return Object.keys(grouped).sort().map(dateStr => {
-                            const [y, m, d] = dateStr.split('-');
-                            const dateObj = new Date(parseInt(y), parseInt(m)-1, parseInt(d));
-                            const parts = new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo', weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' }).formatToParts(dateObj);
-                            const weekdayLong = (parts.find(p => p.type === 'weekday')?.value || '');
-                            const day = parts.find(p => p.type === 'day')?.value || '';
-                            const month = parts.find(p => p.type === 'month')?.value || '';
-                            const year = parts.find(p => p.type === 'year')?.value || '';
-                            const weekdayShort = weekdayLong.replace(/-feira/gi, '').replace(/ feira/gi, '').replace(/feira/gi, '');
-                            const weekdayCap = weekdayShort ? (weekdayShort.charAt(0).toUpperCase() + weekdayShort.slice(1)) : '';
-                            
-                            const nowObj = new Date();
-                            const todayStr = `${nowObj.getFullYear()}-${String(nowObj.getMonth() + 1).padStart(2, '0')}-${String(nowObj.getDate()).padStart(2, '0')}`;
-                            const isToday = todayStr === dateStr;
-                            
-                            return (
-                              <div key={dateStr} style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-                                  <div style={{ background: isToday ? '#2563eb' : '#475569', color: '#fff', borderRadius: '8px', padding: '8px 12px', textAlign: 'center', minWidth: 64 }}>
-                                    <div style={{ fontSize: 24, fontWeight: 800, lineHeight: 1 }}>{day}</div>
-                                    <div style={{ fontSize: 11, textTransform: 'uppercase', fontWeight: 600, marginTop: 2, opacity: 0.9 }}>{month}/{year.slice(2)}</div>
-                                  </div>
-                                  <div>
-                                    <div style={{ fontWeight: 700, fontSize: 18, color: '#0f172a' }}>{weekdayCap}</div>
-                                    {isToday && <div style={{ color: '#2563eb', fontWeight: 600, fontSize: 14 }}>Hoje</div>}
-                                  </div>
-                                </div>
-                                
-                                <div style={{ display: 'grid', gap: 12 }}>
-                                  {grouped[dateStr].map((ev: any) => {
-                                    const myUser = (ev.users || []).find((u: any) => String(u.userId?._id || u.userId) === String(authUser._id)) || {};
-                                    const colorMap: any = { verde: '#16a34a', branco: '#e5e7eb', roxo: '#7c3aed', vermelho: '#dc2626' };
-                                    const borderColor = ev.color ? (colorMap[ev.color] || ev.color) : null;
-                                    const addr = ev.locationId?.address || ev.locationAddress || ev.address;
-                                    return (
-                                      <div key={ev._id} style={{ position: 'relative' }}>
-                                        <div
-                                          onClick={() => setSelectedEventForModal(ev)}
-                                          style={{
-                                            background: '#fff', padding: 12, borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.05)', display: 'flex', gap: 12, alignItems: 'center', borderLeft: borderColor ? `9px solid ${borderColor}` : '1px solid #e2e8f0',
-                                            cursor: 'pointer'
-                                          }}
-                                        >
-                                          <div style={{ width: 60, fontWeight: 700, fontSize: 16, color: '#334155' }}>{ev.time?.start || '—'}</div>
-                                          <div style={{ flex: 1, borderLeft: '1px solid #f1f5f9', paddingLeft: 12 }}>
-                                            <div style={{ fontWeight: 600, color: '#1e293b' }}>{ev.title || (ev.locationId?.name || 'Local não informado')}</div>
-                                            <div style={{ color: '#64748b', fontSize: 13, marginTop: 2 }}>{ev.locationId?.name ? `${ev.locationId?.name}` : ''} </div>
-                                            <div style={{ color: '#64748b', fontSize: 13 }}>{ev.priestName ? `Presidida por ${ev.priestName}` : ''} </div>
-                                            <div style={{ marginTop: 6, fontSize: 13 }}>
-                                              <span style={{ background: '#e0e7ff', color: '#0f172a', padding: '2px 6px', borderRadius: 4, fontWeight: 500 }}>
-                                                {(myUser.roles || []).join(', ') || 'Sem função'}
-                                              </span>
-                                            </div>
-                                          </div>
+                    {(() => {
+                      const todayStr = toLocalDateKey(new Date());
+                      const groupedEvents = dashboardEvents.reduce((acc: any, ev: any) => {
+                        const dateStr = toLocalDateKey(ev.date);
+                        if (!acc[dateStr]) acc[dateStr] = [];
+                        acc[dateStr].push(ev);
+                        return acc;
+                      }, {});
+
+                      const renderGroupedEvents = (dateKeys: string[], muted = false) => dateKeys.map(dateStr => {
+                        const [y, m, d] = dateStr.split('-');
+                        const dateObj = new Date(parseInt(y, 10), parseInt(m, 10) - 1, parseInt(d, 10));
+                        const parts = new Intl.DateTimeFormat('pt-BR', {
+                          timeZone: 'America/Sao_Paulo',
+                          weekday: 'long',
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric'
+                        }).formatToParts(dateObj);
+                        const weekdayLong = (parts.find(p => p.type === 'weekday')?.value || '');
+                        const day = parts.find(p => p.type === 'day')?.value || '';
+                        const month = parts.find(p => p.type === 'month')?.value || '';
+                        const year = parts.find(p => p.type === 'year')?.value || '';
+                        const weekdayShort = weekdayLong.replace(/-feira/gi, '').replace(/ feira/gi, '').replace(/feira/gi, '');
+                        const weekdayCap = weekdayShort ? (weekdayShort.charAt(0).toUpperCase() + weekdayShort.slice(1)) : '';
+                        const isToday = todayStr === dateStr;
+
+                        return (
+                          <div key={dateStr} style={{ background: muted ? '#f8fafc' : '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', opacity: muted ? 0.96 : 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                              <div style={{ background: isToday ? '#2563eb' : '#475569', color: '#fff', borderRadius: '8px', padding: '8px 12px', textAlign: 'center', minWidth: 64 }}>
+                                <div style={{ fontSize: 24, fontWeight: 800, lineHeight: 1 }}>{day}</div>
+                                <div style={{ fontSize: 11, textTransform: 'uppercase', fontWeight: 600, marginTop: 2, opacity: 0.9 }}>{month}/{year.slice(2)}</div>
+                              </div>
+                              <div>
+                                <div style={{ fontWeight: 700, fontSize: 18, color: '#0f172a' }}>{weekdayCap}</div>
+                                {isToday && <div style={{ color: '#2563eb', fontWeight: 600, fontSize: 14 }}>Hoje</div>}
+                              </div>
+                            </div>
+
+                            <div style={{ display: 'grid', gap: 12 }}>
+                              {(groupedEvents[dateStr] || []).map((ev: any) => {
+                                const myUser = (ev.users || []).find((u: any) => String(u.userId?._id || u.userId) === String(authUser._id)) || {};
+                                const colorMap: any = { verde: '#16a34a', branco: '#e5e7eb', roxo: '#7c3aed', vermelho: '#dc2626' };
+                                const borderColor = ev.color ? (colorMap[ev.color] || ev.color) : null;
+                                return (
+                                  <div key={ev._id} style={{ position: 'relative' }}>
+                                    <div
+                                      onClick={() => setSelectedEventForModal(ev)}
+                                      style={{
+                                        background: '#fff', padding: 12, borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.05)', display: 'flex', gap: 12, alignItems: 'center', borderLeft: borderColor ? `9px solid ${borderColor}` : '1px solid #e2e8f0',
+                                        cursor: 'pointer'
+                                      }}
+                                    >
+                                      <div style={{ width: 60, fontWeight: 700, fontSize: 16, color: '#334155' }}>{ev.time?.start || '—'}</div>
+                                      <div style={{ flex: 1, borderLeft: '1px solid #f1f5f9', paddingLeft: 12 }}>
+                                        <div style={{ fontWeight: 600, color: '#1e293b' }}>{ev.title || (ev.locationId?.name || 'Local não informado')}</div>
+                                        <div style={{ color: '#64748b', fontSize: 13, marginTop: 2 }}>{ev.locationId?.name ? `${ev.locationId?.name}` : ''} </div>
+                                        <div style={{ color: '#64748b', fontSize: 13 }}>{ev.priestName ? `Presidida por ${ev.priestName}` : ''} </div>
+                                        <div style={{ marginTop: 6, fontSize: 13 }}>
+                                          <span style={{ background: '#e0e7ff', color: '#0f172a', padding: '2px 6px', borderRadius: 4, fontWeight: 500 }}>
+                                            {(myUser.roles || []).join(', ') || 'Sem função'}
+                                          </span>
                                         </div>
                                       </div>
-                                    );
-                                  })}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      });
+
+                      const upcomingKeys = Object.keys(groupedEvents).filter(dateStr => dateStr >= todayStr).sort();
+                      const recentKeys = Object.keys(groupedEvents).filter(dateStr => dateStr < todayStr).sort().reverse();
+
+                      if (upcomingKeys.length === 0 && recentKeys.length === 0) {
+                        return (
+                          <div style={{ color: '#666' }}>
+                            Nenhuma escala para você nos próximos dias.
+                            <button className="btn" onClick={() => navigate('/agenda')} style={{ marginLeft: 8 }}>Ver agenda</button>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+                          {recentKeys.length > 0 && (
+                            <div style={{ background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 12, padding: 16 }}>
+                              <button
+                                type="button"
+                                onClick={() => setShowRecentEvents(v => !v)}
+                                style={{
+                                  width: '100%',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  gap: 12,
+                                  background: 'transparent',
+                                  border: 'none',
+                                  padding: 0,
+                                  cursor: 'pointer',
+                                  color: '#9a3412'
+                                }}
+                              >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700 }}>
+                                  <span>🕓</span>
+                                  <span>Últimos 3 dias</span>
+                                  <span style={{ fontWeight: 600, color: '#c2410c' }}>({recentKeys.length})</span>
                                 </div>
-                              </div>
-                            );
-                          });
-                        })()}
-                        <div style={{ marginTop: 8 }}><button className="btn secondary" onClick={() => navigate('/agenda')} style={{ width: '100%', justifyContent: 'center' }}>Ver agenda completa</button></div>
-                      </div>
-                    )}
+                                <span>{showRecentEvents ? '▲' : '▼'}</span>
+                              </button>
+                              {showRecentEvents && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 16 }}>
+                                  {renderGroupedEvents(recentKeys, true)}
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {upcomingKeys.length > 0 && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                              {renderGroupedEvents(upcomingKeys)}
+                            </div>
+                          )}
+
+                          <div style={{ marginTop: 8 }}><button className="btn secondary" onClick={() => navigate('/agenda')} style={{ width: '100%', justifyContent: 'center' }}>Ver agenda completa</button></div>
+                        </div>
+                      );
+                    })()}
                   </section>
                   
                   {selectedEventForModal && (
@@ -691,6 +761,10 @@ export default function App() {
 
               {page === 'functions' && (
                 <RoleFunctionsPage />
+              )}
+
+              {page === 'reports_masses' && (
+                <MassReportPage />
               )}
 
               {page === 'location_new' && (

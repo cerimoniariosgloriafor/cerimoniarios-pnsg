@@ -9,6 +9,7 @@ import agendaEventsRouter from './routes/agendaEvents';
 import authRouter from './routes/auth';
 import roleFunctionsRouter from './routes/roleFunctions';
 import substitutionRequestsRouter from './routes/substitutionRequests';
+import reportsRouter from './routes/reports';
 
 dotenv.config();
 
@@ -26,6 +27,7 @@ app.use('/api/shift-templates', templatesRouter);
 app.use('/api/agenda-events', agendaEventsRouter);
 app.use('/api/role-functions', roleFunctionsRouter);
 app.use('/api/substitution-requests', substitutionRequestsRouter);
+app.use('/api/reports', reportsRouter);
 
 const PORT = process.env.PORT || 4000;
 const MONGO = process.env.MONGO_URI || 'mongodb://localhost:27017/cerimoniarios';
