@@ -101,7 +101,8 @@ export default function EventReportPage({ id, onBack }: EventReportPageProps) {
     }
   };
 
-  const handleSave = async () => {
+  const handleSave = async (skipBack?: boolean | React.MouseEvent) => {
+    const shouldSkipBack = skipBack === true;
     try {
       setSaving(true);
       const payload = {
@@ -116,8 +117,10 @@ export default function EventReportPage({ id, onBack }: EventReportPageProps) {
       };
       
       await axios.post(`/agenda-events/${id}`, payload);
-      alert('Relatório salvo com sucesso!');
-      onBack();
+      if (!shouldSkipBack) {
+        alert('Relatório salvo com sucesso!');
+        onBack();
+      }
     } catch (err) {
       console.error('failed to save report', err);
       alert('Erro ao salvar relatório');
@@ -160,6 +163,78 @@ export default function EventReportPage({ id, onBack }: EventReportPageProps) {
     acc[item.role].push({ ...item, idx });
     return acc;
   }, {} as any);
+
+  const exportToWhatsApp = () => {
+    const evDate = new Date(event.date);
+    const dayFormatter = new Intl.DateTimeFormat('pt-BR', { weekday: 'long' });
+    const capitalizedWeekday = dayFormatter.format(evDate).replace(/^\w/, c => c.toUpperCase());
+    const dateFormatted = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' }).format(evDate);
+    
+    let text = `*${event.title || 'Missa'} - ${event.time?.start || ''} - ${event.locationId?.name || ''} - ${event.priestName || ''}*\n\n`;
+    
+    text += `*Cerimoniários:*\n`;
+    const servosWithRoles = eventUsers.filter((u: any) => u.roles && u.roles.length > 0)
+      .sort((a: any, b: any) => {
+        const getHighestRank = (roles: string[]) => {
+          if (!roles || roles.length === 0) return 999;
+          return Math.min(...roles.map(r => {
+            const idx = availableRoles.indexOf(r);
+            return idx === -1 ? 999 : idx;
+          }));
+        };
+        const rankA = getHighestRank(a.roles);
+        const rankB = getHighestRank(b.roles);
+        if (rankA !== rankB) return rankA - rankB;
+        return (a.userId?.name || '').localeCompare(b.userId?.name || '');
+      });
+
+    servosWithRoles.forEach(u => {
+      let sortedRoles = [...u.roles].sort((a, b) => {
+        const aIdx = availableRoles.indexOf(a);
+        const bIdx = availableRoles.indexOf(b);
+        if (aIdx === -1 && bIdx === -1) return a.localeCompare(b);
+        if (aIdx === -1) return 1;
+        if (bIdx === -1) return -1;
+        return aIdx - bIdx;
+      });
+      text += `• ${sortedRoles.join(', ')} - ${u.userId?.name || 'Desconhecido'}\n`;
+    });
+
+    const faltosos = eventUsers.filter((u: any) => !u.roles || u.roles.length === 0);
+    if (faltosos.length > 0) {
+      text += `\n*Faltas:*\n`;
+      faltosos.forEach(u => {
+        text += `- ${u.userId?.name || 'Desconhecido'}\n`;
+      });
+    }
+
+    text += `\n*Acólitos - ${acolyteCount}*\n`;
+
+    const occsWithNotes = occurrences.filter(o => o.note && o.note.trim() !== '');
+    if (occsWithNotes.length > 0) {
+      text += `\n*Ocorrências:*\n`;
+      occsWithNotes.forEach(o => {
+        const eventUser = eventUsers.find((eu: any) => String(eu.userId?._id || eu.userId) === String(o.userId?._id || o.userId));
+        const uName = eventUser?.userId?.name || o.userId?.name || 'Desconhecido';
+        
+        const formattedNote = o.note
+          .split('\n')
+          .filter((line: string) => line.trim() !== '')
+          .map((line: string) => `  ${line.trim()}`)
+          .join('\n');
+
+        text += `• *[${uName}]*\n${formattedNote}\n`;
+      });
+    }
+
+    text += `\nNossa Senhora da Glória, Rogai por nós!`;
+
+    const encoded = encodeURIComponent(text);
+    window.open(`whatsapp://send?text=${encoded}`, '_blank');
+    
+    // Salva o relatório no banco após exportar
+    handleSave(true);
+  };
 
   return (
     <div className="page" style={{ background: '#f8fafc', minHeight: '100vh', padding: '16px' }}>
@@ -403,9 +478,12 @@ export default function EventReportPage({ id, onBack }: EventReportPageProps) {
         )}
       </div>
 
-      <div style={{ position: 'sticky', bottom: 16, display: 'flex', justifyContent: 'flex-end' }}>
-        <button className="btn" style={{ width: '100%', justifyContent: 'center', padding: '14px', fontSize: 16 }} onClick={handleSave} disabled={saving}>
-          {saving ? 'Salvando...' : 'Salvar Relatório'}
+      <div style={{ position: 'sticky', bottom: 16, display: 'flex', gap: 12, justifyContent: 'flex-end', background: 'transparent' }}>
+        <button className="btn" style={{ flex: 1, justifyContent: 'center', padding: '14px', fontSize: 16, background: '#10b981' }} onClick={exportToWhatsApp}>
+          WhatsApp
+        </button>
+        <button className="btn" style={{ flex: 1, justifyContent: 'center', padding: '14px', fontSize: 16 }} onClick={handleSave} disabled={saving}>
+          {saving ? 'Salvando...' : 'Salvar'}
         </button>
       </div>
     </div>
