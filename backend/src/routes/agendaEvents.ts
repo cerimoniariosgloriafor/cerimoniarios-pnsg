@@ -62,6 +62,13 @@ router.get('/', async (req, res) => {
     const AgendaEvent = require('../models/agendaEvent').default;
     const dateStr = (req.query.date || '').toString();
     const startDateStr = (req.query.startDate || '').toString();
+    const endDateStr = (req.query.endDate || '').toString();
+    const locationId = (req.query.locationId || '').toString();
+
+    const baseQuery: any = {};
+    if (locationId) {
+      baseQuery.locationId = locationId;
+    }
 
     if (dateStr) {
       const parts = dateStr.split('-').map((p: string) => parseInt(p, 10));
@@ -69,19 +76,30 @@ router.get('/', async (req, res) => {
       const d = new Date(parts[0], parts[1] - 1, parts[2]);
       const start = new Date(d); start.setHours(0,0,0,0);
       const end = new Date(d); end.setHours(23,59,59,999);
-      const list = await AgendaEvent.find({ date: { $gte: start, $lte: end } }).populate('locationId').populate('users.userId');
+      const list = await AgendaEvent.find({ ...baseQuery, date: { $gte: start, $lte: end } }).sort({ date: 1, 'time.start': 1 }).populate('locationId').populate('users.userId');
       return res.json(list);
     }
     
-    if (startDateStr) {
+    if (startDateStr || endDateStr) {
+      const dateQuery: any = {};
+      if (startDateStr) {
       const parts = startDateStr.split('-').map((p: string) => parseInt(p, 10));
       if (parts.length < 3 || parts.some(p => isNaN(p))) return res.status(400).json({ error: 'invalid startDate' });
       const d = new Date(parts[0], parts[1] - 1, parts[2]);
       const start = new Date(d); start.setHours(0,0,0,0);
-      const list = await AgendaEvent.find({ date: { $gte: start } }).sort({ date: 1, 'time.start': 1 }).populate('locationId').populate('users.userId');
+        dateQuery.$gte = start;
+      }
+      if (endDateStr) {
+        const parts = endDateStr.split('-').map((p: string) => parseInt(p, 10));
+        if (parts.length < 3 || parts.some(p => isNaN(p))) return res.status(400).json({ error: 'invalid endDate' });
+        const d = new Date(parts[0], parts[1] - 1, parts[2]);
+        const end = new Date(d); end.setHours(23,59,59,999);
+        dateQuery.$lte = end;
+      }
+      const list = await AgendaEvent.find({ ...baseQuery, date: dateQuery }).sort({ date: 1, 'time.start': 1 }).populate('locationId').populate('users.userId');
       return res.json(list);
     }
-    const listAll = await AgendaEvent.find().populate('locationId').populate('users.userId');
+    const listAll = await AgendaEvent.find(baseQuery).sort({ date: 1, 'time.start': 1 }).populate('locationId').populate('users.userId');
     res.json(listAll);
   } catch (err) {
     console.error('agendaEvents GET error', err);
@@ -93,7 +111,10 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const AgendaEvent = require('../models/agendaEvent').default;
-    const ev = await AgendaEvent.findById(req.params.id).populate('locationId').populate('users.userId');
+    const ev = await AgendaEvent.findById(req.params.id)
+      .populate('locationId')
+      .populate('users.userId')
+      .populate('occurrences.userId');
     if (!ev) return res.status(404).json({ error: 'event not found' });
     res.json(ev);
   } catch (err) {
@@ -133,7 +154,10 @@ router.post('/:id', async (req, res) => {
 
     const updated = await AgendaEvent.findByIdAndUpdate(req.params.id, body, { new: true, runValidators: true });
     if (!updated) return res.status(404).json({ error: 'event not found' });
-    const populated = await AgendaEvent.findById(updated._id).populate('locationId').populate('users.userId');
+    const populated = await AgendaEvent.findById(updated._id)
+      .populate('locationId')
+      .populate('users.userId')
+      .populate('occurrences.userId');
     res.json(populated || updated);
   } catch (err) {
     console.error('agendaEvents POST (update) error', err);

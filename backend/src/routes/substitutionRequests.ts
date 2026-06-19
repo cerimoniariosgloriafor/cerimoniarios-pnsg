@@ -5,12 +5,25 @@ import User from '../models/user';
 
 const router = Router();
 
-// Get all active substitution requests (PENDING or OPEN)
+// Get active substitution requests by default, or all requests for a specific event when requested
 router.get('/', async (req, res) => {
   try {
-    const requests = await SubstitutionRequest.find({
-      status: { $in: ['PENDING', 'OPEN'] }
-    }).populate('eventId').populate('originalUserId').populate('substituteUserId');
+    const eventId = (req.query.eventId || '').toString();
+    const includeAll = String(req.query.all || '') === 'true';
+
+    const query: any = {};
+    if (eventId) {
+      query.eventId = eventId;
+    }
+    if (!includeAll) {
+      query.status = { $in: ['PENDING', 'OPEN'] };
+    }
+
+    const requests = await SubstitutionRequest.find(query)
+      .sort({ createdAt: 1 })
+      .populate('eventId')
+      .populate('originalUserId')
+      .populate('substituteUserId');
     res.json(requests);
   } catch (err: any) {
     res.status(500).json({ error: err.message });

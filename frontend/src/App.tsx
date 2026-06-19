@@ -13,6 +13,8 @@ import AgendaPage from './pages/templates/AgendaPage';
 import AgendaEventEditor from './pages/templates/AgendaEventEditor';
 import EventReportPage from './pages/dashboard/EventReportPage';
 import MassReportPage from './pages/reports/MassReportPage';
+import ReportsPage from './pages/reports/ReportsPage';
+import IndividualReportPage from './pages/reports/IndividualReportPage';
 import LoginPage from './pages/auth/LoginPage';
 import ChangePasswordModal from './components/ChangePasswordModal';
 import RoleFunctionsPage from './pages/functions/RoleFunctionsPage';
@@ -42,7 +44,9 @@ export default function App() {
     if (p === '/templates/new') return 'template_new';
     if (p === '/templates/weekly') return 'templates_weekly';
     if (p === '/templates/monthly') return 'templates_monthly';
+    if (p === '/reports') return 'reports_home';
     if (p === '/reports/masses') return 'reports_masses';
+    if (p === '/reports/individual') return 'reports_individual';
     if (p === '/functions') return 'functions';
     if (p === '/agenda') return 'templates_agenda';
     if (p === '/agenda/new') return 'agenda_new';
@@ -197,8 +201,12 @@ export default function App() {
       setPage('templates_weekly'); setCurrentId(null);
     } else if (normalized === '/templates/monthly') {
       setPage('templates_monthly'); setCurrentId(null);
+    } else if (normalized === '/reports') {
+      setPage('reports_home'); setCurrentId(null);
     } else if (normalized === '/reports/masses') {
       setPage('reports_masses'); setCurrentId(null);
+    } else if (normalized === '/reports/individual') {
+      setPage('reports_individual'); setCurrentId(null);
     } else if (normalized === '/functions') {
       setPage('functions'); setCurrentId(null);
     } else if (normalized === '/agenda') {
@@ -240,6 +248,9 @@ export default function App() {
       else if (p === '/templates/new') { setPage('template_new'); setCurrentId(null); }
       else if (p === '/templates/weekly') { setPage('templates_weekly'); setCurrentId(null); }
       else if (p === '/templates/monthly') { setPage('templates_monthly'); setCurrentId(null); }
+      else if (p === '/reports') { setPage('reports_home'); setCurrentId(null); }
+      else if (p === '/reports/masses') { setPage('reports_masses'); setCurrentId(null); }
+      else if (p === '/reports/individual') { setPage('reports_individual'); setCurrentId(null); }
       else if (p === '/agenda') { setPage('templates_agenda'); setCurrentId(null); }
       else if (p === '/agenda/new') { setPage('agenda_new'); setCurrentId(null); }
       else if (p.startsWith('/agenda/') && p.endsWith('/report')) { setPage('agenda_report'); setCurrentId(p.split('/')[2]); }
@@ -453,9 +464,9 @@ export default function App() {
                     <span className="label">Funções</span>
                   </button>
 
-                  <button className="nav-btn" onClick={() => navigate('/reports/masses')}>
+                  <button className="nav-btn" onClick={() => navigate('/reports')}>
                     <span className="icon">📊</span>
-                    <span className="label">Relatório</span>
+                    <span className="label">Relatórios</span>
                   </button>
                 </>
               )}
@@ -763,8 +774,19 @@ export default function App() {
                 <RoleFunctionsPage />
               )}
 
+              {page === 'reports_home' && (
+                <ReportsPage
+                  onOpenConsolidated={() => navigate('/reports/masses')}
+                  onOpenIndividual={() => navigate('/reports/individual')}
+                />
+              )}
+
               {page === 'reports_masses' && (
-                <MassReportPage />
+                <MassReportPage onBack={() => navigate('/reports')} />
+              )}
+
+              {page === 'reports_individual' && (
+                <IndividualReportPage onBack={() => navigate('/reports')} />
               )}
 
               {page === 'location_new' && (
