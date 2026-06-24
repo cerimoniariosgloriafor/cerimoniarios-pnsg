@@ -26,6 +26,7 @@ export default function MassReportPage({ onBack }: MassReportPageProps) {
   const [loading, setLoading] = useState(false);
   const [sortField, setSortField] = useState<'name' | 'servicos' | 'faltas' | 'substituido' | 'substituto'>('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [filtersCollapsed, setFiltersCollapsed] = useState(false);
 
   // Defaults to current month
   useEffect(() => {
@@ -60,6 +61,11 @@ export default function MassReportPage({ onBack }: MassReportPageProps) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleFilter = () => {
+    setFiltersCollapsed(true);
+    fetchReport();
   };
 
   useEffect(() => {
@@ -106,33 +112,71 @@ export default function MassReportPage({ onBack }: MassReportPageProps) {
         </header>
 
         <section style={{ background: '#fff', padding: 24, borderRadius: 16, border: '1px solid #e2e8f0', marginBottom: 24, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'flex-end' }}>
-            <div style={{ flex: '1 1 200px' }}>
-              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#475569', marginBottom: 6 }}>Data Inicial</label>
-              <input 
-                type="date" 
-                className="input" 
-                value={startDate} 
-                onChange={(e) => setStartDate(e.target.value)} 
-                style={{ width: '100%' }}
-              />
+          <div
+            style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', marginBottom: filtersCollapsed ? 0 : 16, flexWrap: 'wrap', cursor: 'pointer' }}
+            onClick={() => setFiltersCollapsed(prev => !prev)}
+          >
+            <div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: '#0f172a' }}>Filtros</div>
+              <div style={{ color: '#64748b', fontSize: 13 }}>Defina o período da consolidação.</div>
             </div>
-            <div style={{ flex: '1 1 200px' }}>
-              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#475569', marginBottom: 6 }}>Data Final</label>
-              <input 
-                type="date" 
-                className="input" 
-                value={endDate} 
-                onChange={(e) => setEndDate(e.target.value)} 
-                style={{ width: '100%' }}
-              />
-            </div>
-            <div style={{ flex: '0 0 auto' }}>
-              <button className="btn" onClick={fetchReport} disabled={loading} style={{ background: '#2563eb', padding: '12px 24px', height: '46px' }}>
-                {loading ? 'Carregando...' : 'Filtrar Relatório'}
-              </button>
-            </div>
+            <button
+              type="button"
+              aria-label={filtersCollapsed ? 'Mostrar filtros' : 'Recolher filtros'}
+              onClick={(e) => { e.stopPropagation(); setFiltersCollapsed(prev => !prev); }}
+              style={{
+                width: 36,
+                height: 36,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: '#f1f5f9',
+                border: '1px solid #e2e8f0',
+                borderRadius: 8,
+                cursor: 'pointer',
+                flexShrink: 0,
+              }}
+            >
+              <span style={{
+                display: 'inline-block',
+                transition: 'transform 0.2s ease',
+                transform: filtersCollapsed ? 'rotate(180deg)' : 'rotate(0deg)',
+                fontSize: 14,
+                color: '#64748b',
+              }}>
+                ⌃
+              </span>
+            </button>
           </div>
+          {!filtersCollapsed && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'flex-end' }}>
+              <div style={{ flex: '1 1 200px' }}>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#475569', marginBottom: 6 }}>Data Inicial</label>
+                <input
+                  type="date"
+                  className="input"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  style={{ width: '100%' }}
+                />
+              </div>
+              <div style={{ flex: '1 1 200px' }}>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#475569', marginBottom: 6 }}>Data Final</label>
+                <input
+                  type="date"
+                  className="input"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  style={{ width: '100%' }}
+                />
+              </div>
+              <div style={{ flex: '0 0 auto' }}>
+                <button className="btn" onClick={handleFilter} disabled={loading} style={{ background: '#2563eb', padding: '12px 24px', height: '46px' }}>
+                  {loading ? 'Carregando...' : 'Filtrar Relatório'}
+                </button>
+              </div>
+            </div>
+          )}
         </section>
 
         {data.length > 0 && (

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
+import { jsPDF } from 'jspdf';
 
 function toDateInputValue(date: Date) {
   const y = date.getFullYear();
@@ -341,6 +342,8 @@ export default function IndividualReportPage(props: IndividualReportPageProps) {
   const [selectedEvent, setSelectedEvent] = useState<any | null>(null);
   const [selectedRequests, setSelectedRequests] = useState<any[]>([]);
   const [detailsLoading, setDetailsLoading] = useState(false);
+  const [filtersCollapsed, setFiltersCollapsed] = useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
   const fetchLocations = async () => {
     try {
@@ -390,6 +393,7 @@ export default function IndividualReportPage(props: IndividualReportPageProps) {
   }, [user?.role]);
 
   const handleSearch = () => {
+    setFiltersCollapsed(true);
     fetchEvents();
   };
 
@@ -413,6 +417,92 @@ export default function IndividualReportPage(props: IndividualReportPageProps) {
     }
   };
 
+  const buildPrintableReportHtml = (events: any[], startDate?: string, endDate?: string) => {
+    const formatDate = (dateString: string) => {
+      try {
+        const d = new Date(dateString);
+        d.setDate(d.getDate() + 1);
+        return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(d);
+      } catch {
+        return 'N/D';
+      }
+    };
+
+    let reportText = `Relatório de Missas\n`;
+    reportText += `Período: ${startDate ? formatDate(startDate) : 'N/A'} a ${endDate ? formatDate(endDate) : 'N/A'}\n`;
+    reportText += `Total de missas: ${events.length}\n`;
+    reportText += `Gerado em: ${new Date().toLocaleString('pt-BR')}\n`;
+    reportText += `${'-'.repeat(80)}\n\n`;
+
+    events.forEach((event, index) => {
+      const eventDateLabel = formatDateTime(event.date, false);
+      const eventTimeLabel = event.time?.start || '—';
+      const checkedInUsers = (event.users || []).filter((u: any) => !!u.checkedInAt).sort(sortByRoles);
+
+      reportText += `MISSA ${index + 1} de ${events.length}\n`;
+      reportText += `${'='.repeat(40)}\n`;
+      reportText += `${event.title || 'Missa'}\n`;
+      //reportText += `${eventDateLabel}${eventTimeLabel !== '—' ? ` às ${eventTimeLabel}` : ''}\n`;
+      reportText += `Local: ${event.locationId?.name || 'Não informado'} - ${eventTimeLabel}\n`;
+      reportText += `Padre: ${event.priestName || 'Não informado'}\n`;
+      reportText += `Acólitos: ${event.acolyteCount || 0}\n\n`;
+
+      reportText += `Servos:\n`;
+      if (checkedInUsers.length > 0) {
+        checkedInUsers.forEach((u: any) => {
+          const roles = sortRolesList(u.roles || []).join(', ') || 'Sem função';
+          reportText += `  • ${u.userId?.name || 'Desconhecido'} (${roles}) \n`;
+        });
+      } else {
+        reportText += `  Nenhum servo com check-in.\n`;
+      }
+      reportText += `\n`;
+
+      const occs = (event.occurrences || []).filter((o: any) => String(o.note || '').trim() !== '');
+      if (occs.length > 0) {
+          reportText += `Intercorrências Registradas:\n`;
+          occs.forEach((o: any) => {
+              const formattedNote = String(o.note).split('\n').map((line: string) => `    ${line.trim()}`).join('\n');
+              reportText += `${formattedNote}\n`;
+          });
+      }
+      reportText += `\n${'-'.repeat(80)}\n\n`;
+    });
+
+    return reportText;
+  };
+
+  const exportEventsToPdf = () => {
+    const pdf = new jsPDF();
+
+    pdf.setFont('courier', 'normal');
+    pdf.setFontSize(10);
+
+    const html = buildPrintableReportHtml(events, startDate, endDate);
+
+    const element = document.createElement('div');
+    element.innerHTML = html;
+
+    const text = element.innerText;
+
+    const lines = pdf.splitTextToSize(text, 180);
+
+    let y = 10;
+    const pageHeight = pdf.internal.pageSize.getHeight();
+
+    lines.forEach((line: string) => {
+      if (y > pageHeight - 10) {
+        pdf.addPage();
+        y = 10;
+      }
+
+      pdf.text(line, 10, y);
+      y += 5;
+    });
+
+    pdf.save(`relatorio-missas-${Date.now()}.pdf`);
+  };
+
   if (user?.role !== 'admin') {
     return <div className="page" style={{ padding: 24, textAlign: 'center', color: '#ef4444' }}>Acesso negado. Apenas administradores podem ver relatórios.</div>;
   }
@@ -430,48 +520,86 @@ export default function IndividualReportPage(props: IndividualReportPageProps) {
         </header>
 
         <section style={{ background: '#fff', padding: 20, borderRadius: 16, border: '1px solid #e2e8f0', marginBottom: 20, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14, alignItems: 'end' }}>
+          <div
+            style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', marginBottom: filtersCollapsed ? 0 : 16, flexWrap: 'wrap', cursor: 'pointer' }}
+            onClick={() => setFiltersCollapsed(prev => !prev)}
+          >
             <div>
-              <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#475569', marginBottom: 6 }}>Data inicial</label>
-              <input
-                type="date"
-                className="input"
-                value={startDate}
-                onChange={e => setStartDate(e.target.value)}
-                style={{ width: '100%' }}
-              />
+              <div style={{ fontSize: 16, fontWeight: 800, color: '#0f172a' }}>Filtros</div>
+              <div style={{ color: '#64748b', fontSize: 13 }}>Ajuste o período e o local da busca.</div>
             </div>
-            <div>
-              <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#475569', marginBottom: 6 }}>Data final</label>
-              <input
-                type="date"
-                className="input"
-                value={endDate}
-                onChange={e => setEndDate(e.target.value)}
-                style={{ width: '100%' }}
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#475569', marginBottom: 6 }}>Local</label>
-              <select
-                className="input"
-                value={locationId}
-                onChange={e => setLocationId(e.target.value)}
-                style={{ width: '100%' }}
-                disabled={locationsLoading}
-              >
-                <option value="">Todos os locais</option>
-                {locations.map(loc => (
-                  <option key={loc._id} value={loc._id}>{loc.name}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <button className="btn" onClick={handleSearch} disabled={loading} style={{ background: '#2563eb', borderColor: '#2563eb', width: '100%', height: 46 }}>
-                {loading ? 'Filtrando...' : 'Filtrar'}
-              </button>
-            </div>
+            <button
+              type="button"
+              aria-label={filtersCollapsed ? 'Mostrar filtros' : 'Recolher filtros'}
+              onClick={(e) => { e.stopPropagation(); setFiltersCollapsed(prev => !prev); }}
+              style={{
+                width: 36,
+                height: 36,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: '#f1f5f9',
+                border: '1px solid #e2e8f0',
+                borderRadius: 8,
+                cursor: 'pointer',
+                flexShrink: 0,
+              }}
+            >
+              <span style={{
+                display: 'inline-block',
+                transition: 'transform 0.2s ease',
+                transform: filtersCollapsed ? 'rotate(180deg)' : 'rotate(0deg)',
+                fontSize: 14,
+                color: '#475569',
+              }}>
+                ⌃
+              </span>
+            </button>
           </div>
+          {!filtersCollapsed && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14, alignItems: 'end' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#475569', marginBottom: 6 }}>Data inicial</label>
+                <input
+                  type="date"
+                  className="input"
+                  value={startDate}
+                  onChange={e => setStartDate(e.target.value)}
+                  style={{ width: '100%' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#475569', marginBottom: 6 }}>Data final</label>
+                <input
+                  type="date"
+                  className="input"
+                  value={endDate}
+                  onChange={e => setEndDate(e.target.value)}
+                  style={{ width: '100%' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#475569', marginBottom: 6 }}>Local</label>
+                <select
+                  className="input"
+                  value={locationId}
+                  onChange={e => setLocationId(e.target.value)}
+                  style={{ width: '100%' }}
+                  disabled={locationsLoading}
+                >
+                  <option value="">Todos os locais</option>
+                  {locations.map(loc => (
+                    <option key={loc._id} value={loc._id}>{loc.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <button className="btn" onClick={handleSearch} disabled={loading} style={{ background: '#2563eb', borderColor: '#2563eb', width: '100%', height: 46 }}>
+                  {loading ? 'Filtrando...' : 'Filtrar'}
+                </button>
+              </div>
+            </div>
+          )}
         </section>
 
         <section style={{ marginBottom: 20 }}>
@@ -555,6 +683,52 @@ export default function IndividualReportPage(props: IndividualReportPageProps) {
               }}
             />
           )
+        )}
+
+        {events.length > 0 && (
+          <button
+            type="button"
+            onClick={exportEventsToPdf}
+            disabled={isGeneratingPdf}
+            aria-label="Gerar PDF do relatório"
+            style={{
+              position: 'fixed',
+              right: 24,
+              bottom: 24,
+              zIndex: 450,
+              width: 56,
+              height: 56,
+              borderRadius: '50%',
+              background: '#dc2626',
+              color: '#fff',
+              border: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 18px 40px rgba(220, 38, 38, 0.35)',
+              cursor: 'pointer',
+              opacity: isGeneratingPdf ? 0.7 : 1,
+            }}
+          >
+            {isGeneratingPdf ? (
+              <svg style={{ animation: 'spin 1s linear infinite' }} width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2V6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M12 18V22" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M4.92969 4.93L7.75969 7.76" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M16.2402 16.24L19.0702 19.07" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M2 12H6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M18 12H22" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M4.92969 19.07L7.75969 16.24" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M16.2402 7.76L19.0702 4.93" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            ) : (
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M6 2H14L20 8V20C20 21.1046 19.1046 22 18 22H6C4.89543 22 4 21.1046 4 20V4C4 2.89543 4.89543 2 6 2Z" stroke="#fff" strokeWidth="1.5" strokeLinejoin="round"/>
+                <path d="M14 2V8H20" stroke="#fff" strokeWidth="1.5" strokeLinejoin="round"/>
+                <text x="12" y="18" textAnchor="middle" fontSize="7" fontWeight="800" fill="#fff" fontFamily="Arial, sans-serif">PDF</text>
+              </svg>
+            )}
+          </button>
         )}
       </div>
     </div>
