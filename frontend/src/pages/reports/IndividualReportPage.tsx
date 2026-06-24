@@ -83,7 +83,7 @@ function buildWhatsAppText(event: any, substitutionRequests: any[]) {
   text += `*Padre:* ${event.priestName || 'Não informado'}\n`;
   text += `*Data:* ${eventDateLabel}${eventTimeLabel !== '—' ? ` às ${eventTimeLabel}` : ''}\n\n`;
 
-  text += `*Servos:*\n`;
+  text += `*Cerimoniários:*\n`;
   currentUsers
     .filter((u: any) => !!u.checkedInAt)
     .forEach((u: any) => {
@@ -100,7 +100,7 @@ function buildWhatsAppText(event: any, substitutionRequests: any[]) {
     absentUsers.forEach((u: any) => {
       const userId = String(u.userId?._id || u.userId || '');
       if (!substitutionBySubstitute.has(userId)) {
-        text += `• ${u.userId?.name || 'Desconhecido'} faltou sem substituição\n`;
+        text += `• ${u.userId?.name || 'Desconhecido'} faltou\n`;
       }
     });
   }
@@ -122,7 +122,7 @@ function buildWhatsAppText(event: any, substitutionRequests: any[]) {
           .filter((line: string) => line.trim() !== '')
           .map((line: string) => `  ${line.trim()}`)
           .join('\n');
-        text += `• *[${o.userId?.name || 'Desconhecido'}]*\n${formattedNote}\n`;
+        text += `${formattedNote}\n`;
       });
   }
 

@@ -197,7 +197,7 @@ export default function EventReportPage({ id, onBack }: EventReportPageProps) {
         if (bIdx === -1) return -1;
         return aIdx - bIdx;
       });
-      text += `• ${sortedRoles.join(', ')} - ${u.userId?.name || 'Desconhecido'}\n`;
+      text += `• *${sortedRoles.join(', ')} - ${u.userId?.name || 'Desconhecido'}*\n`;
     });
 
     const faltosos = eventUsers.filter((u: any) => !u.roles || u.roles.length === 0);
@@ -212,7 +212,7 @@ export default function EventReportPage({ id, onBack }: EventReportPageProps) {
 
     const occsWithNotes = occurrences.filter(o => o.note && o.note.trim() !== '');
     if (occsWithNotes.length > 0) {
-      text += `\n*Ocorrências:*\n`;
+      text += `\n*Intercorrências:*\n`;
       occsWithNotes.forEach(o => {
         const eventUser = eventUsers.find((eu: any) => String(eu.userId?._id || eu.userId) === String(o.userId?._id || o.userId));
         const uName = eventUser?.userId?.name || o.userId?.name || 'Desconhecido';
@@ -223,11 +223,11 @@ export default function EventReportPage({ id, onBack }: EventReportPageProps) {
           .map((line: string) => `  ${line.trim()}`)
           .join('\n');
 
-        text += `• *[${uName}]*\n${formattedNote}\n`;
+        text += `${formattedNote}\n`;
       });
     }
 
-    text += `\nNossa Senhora da Glória, Rogai por nós!`;
+    text += `\n*Nossa Senhora da Glória, Rogai por nós!*`;
 
     const encoded = encodeURIComponent(text);
     window.open(`whatsapp://send?text=${encoded}`, '_blank');
