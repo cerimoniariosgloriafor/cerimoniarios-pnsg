@@ -83,7 +83,7 @@ function buildWhatsAppText(event: any, substitutionRequests: any[]) {
   text += `*Padre:* ${event.priestName || 'Não informado'}\n`;
   text += `*Data:* ${eventDateLabel}${eventTimeLabel !== '—' ? ` às ${eventTimeLabel}` : ''}\n\n`;
 
-  text += `*Servos:*\n`;
+  text += `*Cerimoniários:*\n`;
   currentUsers
     .filter((u: any) => !!u.checkedInAt)
     .forEach((u: any) => {
@@ -100,7 +100,7 @@ function buildWhatsAppText(event: any, substitutionRequests: any[]) {
     absentUsers.forEach((u: any) => {
       const userId = String(u.userId?._id || u.userId || '');
       if (!substitutionBySubstitute.has(userId)) {
-        text += `• ${u.userId?.name || 'Desconhecido'} faltou sem substituição\n`;
+        text += `• ${u.userId?.name || 'Desconhecido'} faltou\n`;
       }
     });
   }
@@ -122,7 +122,7 @@ function buildWhatsAppText(event: any, substitutionRequests: any[]) {
           .filter((line: string) => line.trim() !== '')
           .map((line: string) => `  ${line.trim()}`)
           .join('\n');
-        text += `• *[${o.userId?.name || 'Desconhecido'}]*\n${formattedNote}\n`;
+        text += `${formattedNote}\n`;
       });
   }
 
@@ -136,12 +136,18 @@ interface IndividualReportPageProps {
 function IndividualReportModal({
   event,
   substitutionRequests,
-  onClose
+  onClose,
+  onUpdateEvent,
 }: {
   event: any;
   substitutionRequests: any[];
   onClose: () => void;
+  onUpdateEvent: (updatedEvent: any) => void;
 }) {
+  const [editingOccurrenceIndex, setEditingOccurrenceIndex] = useState<number | null>(null);
+  const [editedOccurrenceNote, setEditedOccurrenceNote] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+
   const currentUsers = useMemo(() => [...(event.users || [])].sort(sortByRoles), [event.users]);
   const approvedRequests = useMemo(
     () => (substitutionRequests || []).filter((req: any) => req.status === 'APPROVED'),
@@ -159,19 +165,44 @@ function IndividualReportModal({
 
   const checkedInUsers = currentUsers.filter((u: any) => !!u.checkedInAt);
   const absentUsers = currentUsers.filter((u: any) => !u.checkedInAt && !substitutionBySubstitute.has(String(u.userId?._id || u.userId || '')));
-  const occs = (event.occurrences || [])
-    .filter((o: any) => String(o.note || '').trim() !== '')
-    .sort((a: any, b: any) => {
-      const nameA = a.userId?.name || '';
-      const nameB = b.userId?.name || '';
-      return nameA.localeCompare(nameB);
-    });
+  const occs = event.occurrences || [];
+  
   const eventDateLabel = formatDateTime(event.date, false);
   const eventTimeLabel = event.time?.start || '—';
 
   const exportToWhatsApp = () => {
     const text = buildWhatsAppText(event, substitutionRequests);
     window.open(`whatsapp://send?text=${encodeURIComponent(text)}`, '_blank');
+  };
+
+  const handleEditOccurrence = (index: number) => {
+    setEditingOccurrenceIndex(index);
+    setEditedOccurrenceNote(occs[index].note);
+  };
+
+  const handleSaveOccurrence = async () => {
+    if (editingOccurrenceIndex === null) return;
+    
+    setIsSaving(true);
+    
+    const occurrencesForPayload = occs.map((occ: any, index: number) => {
+      return {
+        userId: occ.userId?._id || occ.userId,
+        note: index === editingOccurrenceIndex ? editedOccurrenceNote : occ.note,
+        createdAt: occ.createdAt,
+      };
+    });
+
+    try {
+      const res = await axios.post(`/agenda-events/${event._id}`, { occurrences: occurrencesForPayload });
+      onUpdateEvent(res.data);
+      setEditingOccurrenceIndex(null);
+    } catch (err) {
+      console.error('failed to save occurrence', err);
+      alert('Erro ao salvar a intercorrência.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const modalStyle: React.CSSProperties = {
@@ -300,17 +331,48 @@ function IndividualReportModal({
               ) : (
                 <div style={{ display: 'grid', gap: 10 }}>
                   {occs.map((o: any, idx: number) => {
-                    const formattedNote = String(o.note)
-                      .split('\n')
-                      .filter((line: string) => line.trim() !== '')
-                      .map((line: string) => line.trim())
-                      .join('\n');
-
+                    const isEditing = editingOccurrenceIndex === idx;
                     return (
-                    <div key={`${String(o.userId?._id || o.userId || '')}-${idx}`} style={{ padding: 12, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12 }}>
-                      <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: 4 }}>{o.userId?.name || 'Desconhecido'}</div>
-                      <div style={{ color: '#475569', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{formattedNote}</div>
-                    </div>
+                      <div key={`${String(o.userId?._id || o.userId || '')}-${idx}`} style={{ padding: 12, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                          <div style={{ fontWeight: 700, color: '#0f172a' }}>{o.userId?.name || 'Desconhecido'}</div>
+                          {!isEditing && (
+                            <button className="btn-icon" onClick={() => handleEditOccurrence(idx)} style={{ fontSize: 12, padding: '4px 8px' }}>
+                              Editar
+                            </button>
+                          )}
+                        </div>
+                        {isEditing ? (
+                          <div>
+                            <textarea
+                              value={editedOccurrenceNote}
+                              onChange={(e) => setEditedOccurrenceNote(e.target.value)}
+                              rows={3}
+                              style={{ width: '100%', padding: 8, borderRadius: 8, border: '1px solid #cbd5e1' }}
+                            />
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
+                              <button
+                                className="btn secondary"
+                                onClick={() => setEditingOccurrenceIndex(null)}
+                                disabled={isSaving}
+                              >
+                                Cancelar
+                              </button>
+                              <button
+                                className="btn"
+                                onClick={handleSaveOccurrence}
+                                disabled={isSaving}
+                              >
+                                {isSaving ? 'Salvando...' : 'Salvar'}
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div style={{ color: '#475569', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+                            {o.note}
+                          </div>
+                        )}
+                      </div>
                     );
                   })}
                 </div>
@@ -680,6 +742,10 @@ export default function IndividualReportPage(props: IndividualReportPageProps) {
               onClose={() => {
                 setSelectedEvent(null);
                 setSelectedRequests([]);
+              }}
+              onUpdateEvent={(updatedEvent) => {
+                setEvents(prev => prev.map(e => e._id === updatedEvent._id ? updatedEvent : e));
+                setSelectedEvent(updatedEvent);
               }}
             />
           )
