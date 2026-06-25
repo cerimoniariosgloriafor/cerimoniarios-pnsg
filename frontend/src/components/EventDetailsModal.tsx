@@ -37,6 +37,7 @@ export default function EventDetailsModal({ event, authUser, users, existingRequ
         reason: reason.trim()
       });
       alert('Solicitação enviada com sucesso!');
+      shareOnWhatsApp(type, event, authUser, substituteId, users);
       onRequestSubmitted();
       onClose();
       window.location.reload();
@@ -178,6 +179,44 @@ export default function EventDetailsModal({ event, authUser, users, existingRequ
     } catch (err) {
       window.open(`https://www.google.com/maps/search/?api=1&query=${q}`, '_blank');
     }
+  };
+
+  const shareOnWhatsApp = (type: 'A' | 'B', event: any, authUser: any, substituteId: string, users: any[]) => {
+    const formatDate = (dateString: string) => {
+        const date = new Date(dateString);
+        const weekdayOptions: Intl.DateTimeFormatOptions = { weekday: 'long' };
+        const dateOptions: Intl.DateTimeFormatOptions = { day: '2-digit', month: '2-digit', year: 'numeric' };
+
+        let weekday = date.toLocaleDateString('pt-BR', weekdayOptions);
+        weekday = weekday.charAt(0).toUpperCase() + weekday.slice(1); // Capitalize first letter
+
+        const datePart = date.toLocaleDateString('pt-BR', dateOptions);
+
+        return `${weekday}, ${datePart}`;
+    };
+
+    const formattedDate = formatDate(event.date);
+    const eventTime = event.time?.start || 'Horário não informado';
+    const eventLocation = event.locationId?.name || event.locationAddress || 'Local não informado';
+    const replacedUser = authUser.name;
+
+    let message = `*AVISO DE SUBSTITUIÇÃO*\n\n`;
+    message += `📅 Dia: ${formattedDate}\n`;
+    message += `⏰ Horário: ${eventTime}\n`;
+    message += `📍 Local: ${eventLocation}\n\n`;
+    message += `👤 Substituído: ${replacedUser}\n`;
+
+    if (type === 'A') {
+        const substituteUser = users.find(u => String(u._id) === String(substituteId));
+        message += `👤 Substituto: ${substituteUser?.name || 'Não informado'}\n\n`;
+        message += `Pode confirmar se está ok pra você?\n\n{MARQUE OS COORDENADORES AQUI}\n\nObrigado! 🙏`;
+    } else {
+        message += `\nPRECISO DE AJUDA PARA ESTA ESCALA.\n\n`;
+        message += `Por favor, entre em contato se puder ajudar.\n\nObrigado! 🙏`;
+    }
+
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
   };
 
   return (
