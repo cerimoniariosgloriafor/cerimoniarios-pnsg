@@ -215,7 +215,7 @@ export default function EventDetailsModal({ event, authUser, users, existingRequ
         message += `Por favor, entre em contato se puder ajudar.\n\nObrigado! 🙏`;
     }
 
-    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    const whatsappUrl = `whatsapp://send?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
   };
 
