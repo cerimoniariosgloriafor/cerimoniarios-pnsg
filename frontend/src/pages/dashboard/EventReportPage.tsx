@@ -25,7 +25,8 @@ export default function EventReportPage({ id, onBack }: EventReportPageProps) {
   const [expandedRoles, setExpandedRoles] = useState<Record<string, boolean>>({
     'M.C.': false,
     'C.A.': false,
-    'C.L.': false
+    'C.L.': false,
+    'C.D.': false,
   });
   const [expandedServos, setExpandedServos] = useState<boolean>(false);
   const [expandedOccurrences, setExpandedOccurrences] = useState<Record<string, boolean>>({});
@@ -66,7 +67,7 @@ export default function EventReportPage({ id, onBack }: EventReportPageProps) {
 
       const defaultChecklist = functionsRes.data || [];
       const roles = Array.from(new Set(defaultChecklist.map((i: any) => i.role))) as string[];
-      const roleOrder = ['M.C.', 'C.A.', 'C.L.'];
+      const roleOrder = ['M.C.', 'C.A.', 'C.L.', 'C.D.'];
       roles.sort((a, b) => {
         const aIdx = roleOrder.indexOf(a);
         const bIdx = roleOrder.indexOf(b);

@@ -203,7 +203,7 @@ export default function AgendaPage() {
                         </div>
                        <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
                           {(() => {
-                            const roleOrder = ['M.C.','C.A.','C.L.'];
+                            const roleOrder = ['M.C.','C.A.','C.L.','C.D.'];
                             const map: Record<string, string[]> = {};
                             (ev.users || []).forEach((au: any) => {
                               const name = au.userId?.name || 'Usuário';
