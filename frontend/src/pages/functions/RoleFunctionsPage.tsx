@@ -126,7 +126,7 @@ export default function RoleFunctionsPage() {
         <h3 style={{ margin: '0 0 16px 0', fontSize: 16 }}>{editingId ? 'Editar Função' : 'Nova Função'}</h3>
         <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div>
-            <label style={{ display: 'block', marginBottom: 4, fontWeight: 500, color: '#475569' }}>Papel (M.C., C.A., C.L.)</label>
+            <label style={{ display: 'block', marginBottom: 4, fontWeight: 500, color: '#475569' }}>Papel (M.C., C.A., C.L., C.D.)</label>
             <select
               className="input"
               value={role}
@@ -137,6 +137,7 @@ export default function RoleFunctionsPage() {
               <option value="M.C.">M.C.</option>
               <option value="C.A.">C.A.</option>
               <option value="C.L.">C.L.</option>
+              <option value="C.D.">C.D.</option>
             </select>
           </div>
           <div>

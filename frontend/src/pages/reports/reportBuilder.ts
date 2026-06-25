@@ -4,7 +4,7 @@ export interface ReportLine {
 }
 
 function roleRank(role: string) {
-  const order = ['M.C.', 'C.A.', 'C.L.'];
+  const order = ['M.C.', 'C.A.', 'C.L.', 'C.D.'];
   const idx = order.indexOf(role);
   return idx === -1 ? 999 : idx;
 }

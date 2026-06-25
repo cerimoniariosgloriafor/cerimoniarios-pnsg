@@ -255,6 +255,13 @@ export default function AgendaEventEditor({ predate, id }: { predate?: string, i
                              onChange={(e) => { e.stopPropagation(); toggleRole(idx, 'C.L.'); }}
                            /> <span>C.L</span>
                          </label>
+                         <label style={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                           <input
+                             type="checkbox"
+                             checked={roles.includes('C.D.')}
+                             onChange={(e) => { e.stopPropagation(); toggleRole(idx, 'C.D.'); }}
+                           /> <span>C.D.</span>
+                         </label>
                        </div>
                      );
                    })()}
