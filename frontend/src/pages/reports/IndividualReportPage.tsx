@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
+import { buildPrintableReport } from './reportBuilder';
 import { jsPDF } from 'jspdf';
 
 function toDateInputValue(date: Date) {
@@ -479,87 +480,45 @@ export default function IndividualReportPage(props: IndividualReportPageProps) {
     }
   };
 
-  const buildPrintableReportHtml = (events: any[], startDate?: string, endDate?: string) => {
-    const formatDate = (dateString: string) => {
-      try {
-        const d = new Date(dateString);
-        d.setDate(d.getDate() + 1);
-        return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(d);
-      } catch {
-        return 'N/D';
-      }
-    };
-
-    let reportText = `Relatório de Missas\n`;
-    reportText += `Período: ${startDate ? formatDate(startDate) : 'N/A'} a ${endDate ? formatDate(endDate) : 'N/A'}\n`;
-    reportText += `Total de missas: ${events.length}\n`;
-    reportText += `Gerado em: ${new Date().toLocaleString('pt-BR')}\n`;
-    reportText += `${'-'.repeat(80)}\n\n`;
-
-    events.forEach((event, index) => {
-      const eventDateLabel = formatDateTime(event.date, false);
-      const eventTimeLabel = event.time?.start || '—';
-      const checkedInUsers = (event.users || []).filter((u: any) => !!u.checkedInAt).sort(sortByRoles);
-
-      reportText += `MISSA ${index + 1} de ${events.length}\n`;
-      reportText += `${'='.repeat(40)}\n`;
-      reportText += `${event.title || 'Missa'}\n`;
-      //reportText += `${eventDateLabel}${eventTimeLabel !== '—' ? ` às ${eventTimeLabel}` : ''}\n`;
-      reportText += `Local: ${event.locationId?.name || 'Não informado'} - ${eventTimeLabel}\n`;
-      reportText += `Padre: ${event.priestName || 'Não informado'}\n`;
-      reportText += `Acólitos: ${event.acolyteCount || 0}\n\n`;
-
-      reportText += `Servos:\n`;
-      if (checkedInUsers.length > 0) {
-        checkedInUsers.forEach((u: any) => {
-          const roles = sortRolesList(u.roles || []).join(', ') || 'Sem função';
-          reportText += `  • ${u.userId?.name || 'Desconhecido'} (${roles}) \n`;
-        });
-      } else {
-        reportText += `  Nenhum servo com check-in.\n`;
-      }
-      reportText += `\n`;
-
-      const occs = (event.occurrences || []).filter((o: any) => String(o.note || '').trim() !== '');
-      if (occs.length > 0) {
-          reportText += `Intercorrências Registradas:\n`;
-          occs.forEach((o: any) => {
-              const formattedNote = String(o.note).split('\n').map((line: string) => `    ${line.trim()}`).join('\n');
-              reportText += `${formattedNote}\n`;
-          });
-      }
-      reportText += `\n${'-'.repeat(80)}\n\n`;
-    });
-
-    return reportText;
-  };
-
   const exportEventsToPdf = () => {
     const pdf = new jsPDF();
 
-    pdf.setFont('courier', 'normal');
     pdf.setFontSize(10);
 
-    const html = buildPrintableReportHtml(events, startDate, endDate);
-
-    const element = document.createElement('div');
-    element.innerHTML = html;
-
-    const text = element.innerText;
-
-    const lines = pdf.splitTextToSize(text, 180);
+    const lines = buildPrintableReport(
+      events,
+      startDate,
+      endDate,
+    );
 
     let y = 10;
     const pageHeight = pdf.internal.pageSize.getHeight();
 
-    lines.forEach((line: string) => {
+    lines.forEach((line) => {
       if (y > pageHeight - 10) {
         pdf.addPage();
         y = 10;
       }
 
-      pdf.text(line, 10, y);
-      y += 5;
+      pdf.setFont(
+        'helvetica',
+        line.bold ? 'bold' : 'normal',
+      );
+
+      const wrappedLines = pdf.splitTextToSize(
+        line.text,
+        180,
+      );
+
+      wrappedLines.forEach((wrappedLine: string) => {
+        if (y > pageHeight - 10) {
+          pdf.addPage();
+          y = 10;
+        }
+
+        pdf.text(wrappedLine, 10, y);
+        y += 5;
+      });
     });
 
     pdf.save(`relatorio-missas-${Date.now()}.pdf`);
