@@ -20,6 +20,7 @@ import ChangePasswordModal from './components/ChangePasswordModal';
 import RoleFunctionsPage from './pages/functions/RoleFunctionsPage';
 import EventDetailsModal from './components/EventDetailsModal';
 import logo from './assets/logo.png';
+import { MaterialsPage } from './pages/materials/MaterialsPage';
 
 const modalStyle: React.CSSProperties = { position: 'fixed', left: 0, right: 0, top: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(2,6,23,0.4)', zIndex: 200 };
 const modalCard: React.CSSProperties = { background: '#fff', padding: 18, borderRadius: 8, width: '100%', maxWidth: 420 };
@@ -48,6 +49,7 @@ export default function App() {
     if (p === '/reports/masses') return 'reports_masses';
     if (p === '/reports/individual') return 'reports_individual';
     if (p === '/functions') return 'functions';
+    if (p === '/materials') return 'materials';
     if (p === '/agenda') return 'templates_agenda';
     if (p === '/agenda/new') return 'agenda_new';
     if (p.startsWith('/agenda/') && p.endsWith('/report')) return 'agenda_report';
@@ -209,6 +211,8 @@ export default function App() {
       setPage('reports_individual'); setCurrentId(null);
     } else if (normalized === '/functions') {
       setPage('functions'); setCurrentId(null);
+    } else if (normalized === '/materials') {
+      setPage('materials'); setCurrentId(null);
     } else if (normalized === '/agenda') {
       setPage('templates_agenda'); setCurrentId(null);
     } else if (normalized === '/agenda/new') {
@@ -251,6 +255,7 @@ export default function App() {
       else if (p === '/reports') { setPage('reports_home'); setCurrentId(null); }
       else if (p === '/reports/masses') { setPage('reports_masses'); setCurrentId(null); }
       else if (p === '/reports/individual') { setPage('reports_individual'); setCurrentId(null); }
+      else if (p === '/materials') { setPage('materials'); setCurrentId(null); }
       else if (p === '/agenda') { setPage('templates_agenda'); setCurrentId(null); }
       else if (p === '/agenda/new') { setPage('agenda_new'); setCurrentId(null); }
       else if (p.startsWith('/agenda/') && p.endsWith('/report')) { setPage('agenda_report'); setCurrentId(p.split('/')[2]); }
@@ -441,7 +446,7 @@ export default function App() {
               </div>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flex: 1, overflowY: 'auto', paddingBottom: '10px' }}>
               <button className="nav-btn" onClick={() => navigate('/profile')}>
                 <span className="icon">👤</span>
                 <span className="label">Meu Perfil</span>
@@ -470,6 +475,11 @@ export default function App() {
                   </button>
                 </>
               )}
+
+              <button className="nav-btn" onClick={() => navigate('/materials')}>
+                <span className="icon">📚</span>
+                <span className="label">Materiais</span>
+              </button>
 
               <button className="nav-btn" onClick={() => navigate('/templates')}>
                 <span className="icon">🗓️</span>
@@ -772,6 +782,10 @@ export default function App() {
 
               {page === 'functions' && (
                 <RoleFunctionsPage />
+              )}
+
+              {page === 'materials' && (
+                <MaterialsPage />
               )}
 
               {page === 'reports_home' && (
