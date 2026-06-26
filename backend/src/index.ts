@@ -10,6 +10,7 @@ import authRouter from './routes/auth';
 import roleFunctionsRouter from './routes/roleFunctions';
 import substitutionRequestsRouter from './routes/substitutionRequests';
 import reportsRouter from './routes/reports';
+import materialsRouter from './routes/materials';
 
 dotenv.config();
 
@@ -28,6 +29,7 @@ app.use('/api/agenda-events', agendaEventsRouter);
 app.use('/api/role-functions', roleFunctionsRouter);
 app.use('/api/substitution-requests', substitutionRequestsRouter);
 app.use('/api/reports', reportsRouter);
+app.use('/api/materials', materialsRouter);
 
 const PORT = process.env.PORT || 4000;
 const MONGO = process.env.MONGO_URI || 'mongodb://localhost:27017/cerimoniarios';
