@@ -466,7 +466,7 @@ export default function App() {
 
                   <button className="nav-btn" onClick={() => navigate('/functions')}>
                     <span className="icon">⚙️</span>
-                    <span className="label">Funções</span>
+                    <span className="label">Check-list</span>
                   </button>
 
                   <button className="nav-btn" onClick={() => navigate('/reports')}>
