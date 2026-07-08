@@ -146,7 +146,9 @@ export default function UserEditor({ id, onSaved, isProfile, isAdmin = true }: a
         {loading ? <div>Carregando...</div> : (
           <form onSubmit={submit}>
             <div className="form-row">
+              <label className="input-label">Nome</label>
               <input className="input" placeholder="Nome" value={name} onChange={e => setName(e.target.value)} required />
+              <label className="input-label">Nome completo</label>
               <input className="input" placeholder="Nome completo" value={fullName} onChange={e => setFullName(e.target.value)} />
               {isAdmin && (
                 <select className="input" value={role} onChange={e => setRole(e.target.value as any)}>
@@ -156,32 +158,42 @@ export default function UserEditor({ id, onSaved, isProfile, isAdmin = true }: a
               )}
             </div>
             <div className="form-row">
+              <label className="input-label">Email</label>
               <input className="input" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} />
+              <label className="input-label">Telefone</label>
               <input className="input" placeholder="(00) 00000-0000" value={phone} onChange={handlePhoneChange} inputMode="numeric" maxLength={15} />
             </div>
             <div className="form-row">
+              <label className="input-label">Nova Senha</label>
               <input className="input" type="password" placeholder="Nova Senha (deixe em branco para manter)" value={password} onChange={e => setPassword(e.target.value)} />
+              <label className="input-label">Confirmar Senha</label>
               <input className="input" type="password" placeholder="Confirmar Senha" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
             </div>
-            <div style={{ color: '#64748b', fontSize: 13, marginTop: 6 }}>Data de Nascimento</div>
+            <label className="input-label">Data de Nascimento</label>
             <div className="form-row">
               <input className="input" type="date" placeholder="Data de nascimento" value={birthDate} onChange={e => setBirthDate(e.target.value)} />
+              <label className="input-label">Endereço</label>
               <input className="input" placeholder="Endereço" value={address} onChange={e => setAddress(e.target.value)} />
             </div>
             <div className="form-row">
+              <label className="input-label">Profissão</label>
               <input className="input" placeholder="Profissão" value={profession} onChange={e => setProfession(e.target.value)} />
+              <label className="input-label">Comunidade(s) preferida(s)</label>
               <input className="input" placeholder="Comunidade(s) preferida(s)" value={preferredCommunity} onChange={e => setPreferredCommunity(e.target.value)} />
             </div>
             <div className="form-row">
+              <label className="input-label">Sacramentos</label>
               <input className="input" placeholder="Quais sacramentos possui" value={sacraments} onChange={e => setSacraments(e.target.value)} />
+              <label className="input-label">Outras pastorais</label>
               <input className="input" placeholder="Outras pastorais" value={otherPastorals} onChange={e => setOtherPastorals(e.target.value)} />
             </div>
             {isAdmin && (
             <div className="form-row">
+              <label className="input-label">Observação</label>
               <textarea className="input" placeholder="Observação" value={note} onChange={e => setNote(e.target.value)} style={{ minHeight: 80 }} />
             </div>
             )}
-            {id && isAdmin && (
+            {isAdmin && (
               <div style={{ marginBottom: 8 }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <input type="checkbox" checked={mustChangePassword} onChange={e => setMustChangePassword(e.target.checked)} />
