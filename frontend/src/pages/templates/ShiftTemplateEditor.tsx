@@ -134,7 +134,7 @@ export default function ShiftTemplateEditor({ id, onSaved }: any) {
               </div>
 
               <div style={{ display:'flex', flexDirection:'column' }}>
-                <label style={{ fontWeight:700 }}>Usuários</label>
+                <label style={{ fontWeight:700 }}>Cerimoniários</label>
                 <UserMultiSelect users={users} value={selectedUsers} onChange={(v:any) => setSelectedUsers(v)} />
               </div>
             </div>

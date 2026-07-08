@@ -194,13 +194,15 @@ export default function AgendaPage() {
                         <div style={{ fontWeight: 700 }}>
                           {ev.title ? (ev.title.length > 60 ? ev.title.slice(0, 57) + '...' : ev.title) : 'Evento'}
                         </div>
+                        <div style={{ color: '#444', marginTop: 6, display: 'flex', gap: 8, alignItems: 'center', fontSize: 14 }}>
+                          <div>{ev.locationId?.name || ''}</div>
+                        </div>
+                        <div style={{ color: '#444', marginTop: 6, display: 'flex', gap: 8, alignItems: 'center', fontSize: 14 }}>
+                          <div style={{ color: '#666' }}>{ev.time?.start}</div>
+                        </div>
                         {ev.priestName ? (
                           <div style={{ color: '#444', marginTop: 6, fontSize: 14 }}>{ev.priestName}</div>
                         ) : null}
-                        <div style={{ color: '#444', marginTop: 6, display: 'flex', gap: 8, alignItems: 'center', fontSize: 14 }}>
-                          <div>{ev.locationId?.name || ''}</div>
-                          {ev.time?.start && (<div style={{ color: '#666' }}>| {ev.time?.start}</div>)}
-                        </div>
                        <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
                           {(() => {
                             const roleOrder = ['M.C.','C.A.','C.L.','C.D.'];

@@ -53,13 +53,13 @@ export default function ShiftTemplatesPage() {
       <div style={{ display:'grid', gap:12 }}>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
           <div className="big-card" style={{ flex: '1 1 240px', minWidth: 220, cursor: 'pointer' }} onClick={openWeekly}>
-            <div style={{ fontSize: 18, fontWeight: 700 }}>Escalas Semanais</div>
-            <div style={{ marginTop: 8, color: '#0ea5a0' }}>Ver escalas semanal</div>
+            <div style={{ fontSize: 18, fontWeight: 700 }}>Escalas Fixas</div>
+            <div style={{ marginTop: 8, color: '#0ea5a0' }}>Ver escalas fixas</div>
           </div>
 
           <div className="big-card" style={{ flex: '1 1 240px', minWidth: 220, cursor: 'pointer' }} onClick={openMonthly}>
-            <div style={{ fontSize: 18, fontWeight: 700 }}>Escalas Mensais</div>
-            <div style={{ marginTop: 8, color: '#0ea5a0' }}>Ver escalas mensais</div>
+            <div style={{ fontSize: 18, fontWeight: 700 }}>Escalas Rotativas</div>
+            <div style={{ marginTop: 8, color: '#0ea5a0' }}>Ver escalas rotativas</div>
           </div>
 
           <div className="big-card" style={{ flex: '1 1 240px', minWidth: 220, cursor: 'pointer' }} onClick={() => { window.history.pushState({}, '', '/agenda'); window.dispatchEvent(new PopStateEvent('popstate')); }}>
