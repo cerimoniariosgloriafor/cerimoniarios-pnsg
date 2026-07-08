@@ -461,7 +461,7 @@ export default function App() {
 
                   <button className="nav-btn" onClick={() => navigate('/users')}>
                     <span className="icon">👥</span>
-                    <span className="label">Usuários</span>
+                    <span className="label">Cerimoniários</span>
                   </button>
 
                   <button className="nav-btn" onClick={() => navigate('/functions')}>

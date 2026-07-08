@@ -210,11 +210,11 @@ export default function AgendaEventEditor({ predate, id }: { predate?: string, i
 
           <div style={{ marginTop: 12 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-              <div style={{ fontWeight: 600 }}>Usuários (atribuir funções)</div>
+              <div style={{ fontWeight: 600 }}>Cerimoniários (atribuir funções)</div>
               <button 
                 type="button" 
                 onClick={() => {
-                  if (!confirm('Deseja adicionar todos os usuários ativos que ainda não estão na lista?')) return;
+                  if (!confirm('Deseja adicionar todos os cerimoniários ativos que ainda não estão na lista?')) return;
                   const currentIds = new Set(assignedUsers.map(au => String(au.userId)));
                   const newUsers = users
                     .filter(u => !u.archived && (!u.suspendedUntil || new Date(u.suspendedUntil) <= new Date()) && !currentIds.has(String(u._id)))

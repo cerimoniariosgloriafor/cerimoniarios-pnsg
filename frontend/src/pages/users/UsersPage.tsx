@@ -120,11 +120,11 @@ export default function UsersPage({ users, onCreated }: any) {
     <div className="page">
       <div className="page-header">
         <div>
-          <h2>Usuários</h2>
-          <div className="result-count">{total} usuários ativos</div>
+          <h2>Cerimoniários</h2>
+          <div className="result-count">{total} cerimoniários ativos</div>
         </div>
         <div style={{ width: 480, display: 'flex', gap: 8, alignItems: 'center' }}>
-          <input className="search-input" placeholder="Pesquisar usuários" value={query} onChange={e => { setQuery(e.target.value); }} />
+          <input className="search-input" placeholder="Pesquisar cerimoniários" value={query} onChange={e => { setQuery(e.target.value); }} />
         </div>
       </div>
 

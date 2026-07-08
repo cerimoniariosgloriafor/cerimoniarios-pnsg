@@ -28,7 +28,7 @@ export default function UserMultiSelect({ users, value = [], onChange }: any) {
       <div className={`multi-select__control ${open ? 'open' : ''}`} onClick={() => setOpen(s => !s)} tabIndex={0} onKeyDown={(e) => { if (e.key === 'Escape') setOpen(false); }}>
         <div className="multi-select__value">
           {(value || []).length === 0 ? (
-            <span className="multi-select__placeholder">Selecionar usuários</span>
+            <span className="multi-select__placeholder">Selecionar cerimoniários</span>
           ) : (
             <div className="multi-select__chips">
               {(value || []).map((id: string) => {
