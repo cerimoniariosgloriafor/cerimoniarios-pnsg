@@ -87,11 +87,14 @@ export default function LocationEditor({ id, onSaved }: any) {
         {loading ? <div>Carregando...</div> : (
           <form onSubmit={submit}>
             <div className="form-row">
+              <label className="input-label">Nome</label>
               <input className="input" placeholder="Nome" value={name} onChange={e => setName(e.target.value)} required />
+              <label className="input-label">Descrição</label>
               <input className="input" placeholder="Descrição" value={description} onChange={e => setDescription(e.target.value)} />
             </div>
             <div className="form-row">
-              <input className="input" placeholder="Endereço" value={address} onChange={e => setAddress(e.target.value)} />
+              <label className="input-label">Coordenadas</label>
+              <input className="input" placeholder="Coordenadas" value={address} onChange={e => setAddress(e.target.value)} />
             </div>
             
             <div style={{ marginBottom: 16 }}>

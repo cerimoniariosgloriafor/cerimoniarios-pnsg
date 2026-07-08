@@ -169,7 +169,7 @@ body { margin: 0; font-family: Inter, system-ui, -apple-system, 'Segoe UI', Robo
 /* User multi-select */
 .multi-select { position: relative; }
 .multi-select__control { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; border:1px solid #e6eef8; border-radius:8px; background:#fff; cursor:pointer }
-.multi-select__control.open { box-shadow: 0 8px 24px rgba(2,6,23,0.06); }
+.multi-select__control.open { box-shadow: 0 88px 24px rgba(2,6,23,0.06); }
 .multi-select__placeholder { color:#64748b }
 .multi-select__chips { display:flex; gap:6px; flex-wrap:wrap }
 .chip { background:#eef2ff; color:#0f172a; padding:6px 8px; border-radius:999px; font-size:13px; display: inline-flex; align-items: center; }
@@ -250,4 +250,12 @@ body { margin: 0; font-family: Inter, system-ui, -apple-system, 'Segoe UI', Robo
 .assigned-user-name { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
 @media (max-width: 800px) {
   .assigned-user-name { font-size: 12px }
+}
+
+.input-label {
+  display: block;
+  font-weight: 600;
+  font-size: 13px;
+  color: #444;
+  margin-bottom: 4px;
 }

@@ -467,6 +467,7 @@ export default function EventReportPage({ id, onBack }: EventReportPageProps) {
                         placeholder="Descreva se houve alguma intercorrência ou observação para sua função..."
                         value={occ?.note || ''}
                         onChange={e => updateOccurrence(uid, e.target.value)}
+                        disabled={user?._id !== uid}
                       />
                     </div>
                   )}

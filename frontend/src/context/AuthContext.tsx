@@ -22,7 +22,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const initAuth = async () => {
-      const tok = sessionStorage.getItem('accessToken');
+      const tok = localStorage.getItem('accessToken');
       if (!tok) {
         setLoading(false);
         return;
@@ -37,7 +37,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setMustChangePassword(!!u?.mustChangePassword);
       } catch (err) {
         console.error('initAuth failed', err);
-        sessionStorage.removeItem('accessToken');
+        localStorage.removeItem('accessToken');
         delete axios.defaults.headers.common['Authorization'];
         setUser(null);
         setAccessToken(null);
@@ -52,7 +52,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const res = await axios.post('/auth/login', { identity, password });
     const { accessToken: token, user: u, mustChangePassword: mcp } = res.data || {};
     if (token) {
-      sessionStorage.setItem('accessToken', token);
+      localStorage.setItem('accessToken', token);
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       setAccessToken(token);
     }
@@ -62,7 +62,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try { await axios.post('/auth/logout'); } catch {}
-    sessionStorage.removeItem('accessToken');
+    localStorage.removeItem('accessToken');
     delete axios.defaults.headers.common['Authorization'];
     setUser(null);
     setAccessToken(null);

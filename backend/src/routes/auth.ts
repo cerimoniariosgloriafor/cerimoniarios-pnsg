@@ -12,7 +12,7 @@ router.get('/health', (_req, res) => {
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_jwt_secret';
 
 function signAccess(user: any) {
-  return jwt.sign({ uid: String(user._id), role: user.role }, JWT_SECRET, { expiresIn: '15m' });
+  return jwt.sign({ uid: String(user._id), role: user.role }, JWT_SECRET, { expiresIn: '365d' });
 }
 
 // login with email or phone + password
