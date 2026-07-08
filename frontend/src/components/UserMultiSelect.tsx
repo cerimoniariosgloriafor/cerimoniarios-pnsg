@@ -33,7 +33,20 @@ export default function UserMultiSelect({ users, value = [], onChange }: any) {
             <div className="multi-select__chips">
               {(value || []).map((id: string) => {
                 const u = users.find((x: any) => x._id === id) || { name: id };
-                return <span key={id} className="chip">{u.name}</span>;
+                return (
+                  <span key={id} className="chip">
+                    {u.name}
+                    <span
+                      className="chip__remove"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggle(id);
+                      }}
+                    >
+                      &times;
+                    </span>
+                  </span>
+                );
               })}
             </div>
           )}
