@@ -160,6 +160,18 @@ export default function EventDetailsModal({ event, authUser, users, existingRequ
     }
   };
 
+  const isEventPassed = () => {
+    if (!event || !event.date || !event.time?.start) return false;
+    
+    const datePart = event.date.split('T')[0]; // "YYYY-MM-DD"
+    const [year, month, day] = datePart.split('-').map(Number);
+    const [hour, minute] = event.time.start.split(':').map(Number);
+    const eventStart = new Date(year, month - 1, day, hour, minute, 0);
+    const now = new Date();
+    
+    return now > eventStart;
+  };
+
   const modalStyle: React.CSSProperties = { position: 'fixed', left: 0, right: 0, top: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(2,6,23,0.4)', zIndex: 300, padding: 16 };
   const modalCard: React.CSSProperties = { background: '#fff', padding: 24, borderRadius: 12, width: '100%', maxWidth: 420, maxHeight: '90vh', overflowY: 'auto' };
 
@@ -312,7 +324,7 @@ export default function EventDetailsModal({ event, authUser, users, existingRequ
                 <button className="btn" style={{ width: '100%', justifyContent: 'center', background: '#10b981', borderColor: '#10b981', color: '#fff' }} onClick={handleCheckIn} disabled={locLoading}>
                   {locLoading ? 'Verificando localização...' : 'Fazer Check-In'}
                 </button>
-                <button className="btn" style={{ width: '100%', justifyContent: 'center', background: '#f59e0b', borderColor: '#f59e0b', color: '#fff' }} onClick={() => setShowForm(true)} disabled={locLoading}>
+                <button className="btn" style={{ width: '100%', justifyContent: 'center', background: '#f59e0b', borderColor: '#f59e0b', color: '#fff' }} onClick={() => setShowForm(true)} disabled={locLoading || isEventPassed()}>
                   Não poderei ir / Solicitar Troca
                 </button>
               </>
