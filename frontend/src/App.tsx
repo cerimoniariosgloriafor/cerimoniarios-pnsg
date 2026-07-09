@@ -21,6 +21,7 @@ import RoleFunctionsPage from './pages/functions/RoleFunctionsPage';
 import EventDetailsModal from './components/EventDetailsModal';
 import logo from './assets/logo.png';
 import { MaterialsPage } from './pages/materials/MaterialsPage';
+import QuickNav from './components/QuickNav';
 
 const modalStyle: React.CSSProperties = { position: 'fixed', left: 0, right: 0, top: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(2,6,23,0.4)', zIndex: 200 };
 const modalCard: React.CSSProperties = { background: '#fff', padding: 18, borderRadius: 8, width: '100%', maxWidth: 420 };
@@ -520,6 +521,7 @@ export default function App() {
 
               {page === 'dashboard' && (
                 <>
+                  {<QuickNav navigate={navigate} />}
                   <section className="hero">
                     <h2>Dashboard</h2>
                     <p>Bem-vindo ao sistema de escalas — abaixo estão seus próximos serviços.</p>
@@ -700,7 +702,6 @@ export default function App() {
                         return (
                           <div style={{ color: '#666' }}>
                             Nenhuma escala para você nos próximos dias.
-                            <button className="btn" onClick={() => navigate('/agenda')} style={{ marginLeft: 8 }}>Ver agenda</button>
                           </div>
                         );
                       }
@@ -745,8 +746,6 @@ export default function App() {
                               {renderGroupedEvents(upcomingKeys)}
                             </div>
                           )}
-
-                          <div style={{ marginTop: 8 }}><button className="btn secondary" onClick={() => navigate('/agenda')} style={{ width: '100%', justifyContent: 'center' }}>Ver agenda completa</button></div>
                         </div>
                       );
                     })()}
