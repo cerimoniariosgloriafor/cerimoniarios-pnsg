@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 
+import RoleMultiSelect from '../../components/RoleMultiSelect';
+
 export default function AgendaEventEditor({ predate, id }: { predate?: string, id?: string }) {
   const [date, setDate] = useState<string>(predate || '');
   const [templates, setTemplates] = useState<any[]>([]);
@@ -92,13 +94,10 @@ export default function AgendaEventEditor({ predate, id }: { predate?: string, i
     }
   };
 
-  // more robust immutable toggle by index
-  const toggleRole = (index: number, role: string) => {
+  const handleRolesChange = (index: number, newRoles: string[]) => {
     setAssignedUsers(prev => prev.map((au, i) => {
       if (i !== index) return au;
-      const roles = au.roles || [];
-      const has = roles.includes(role);
-      return { ...au, roles: has ? roles.filter(r => r !== role) : [...roles, role] };
+      return { ...au, roles: newRoles };
     }));
   };
 
@@ -211,13 +210,13 @@ export default function AgendaEventEditor({ predate, id }: { predate?: string, i
           <div style={{ marginTop: 12 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
               <div style={{ fontWeight: 600 }}>Cerimoniários (atribuir funções)</div>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => {
                   if (!confirm('Deseja adicionar todos os cerimoniários ativos que ainda não estão na lista?')) return;
                   const currentIds = new Set(assignedUsers.map(au => String(au.userId)));
                   const newUsers = users
-                    .filter(u => !u.archived && (!u.suspendedUntil || new Date(u.suspendedUntil) <= new Date()) && !currentIds.has(String(u._id)))
+                    .filter(u => !u.archived && (!u.suspendedUntil || new Date(u.suspendedUntil)) <= new Date() && !currentIds.has(String(u._id)))
                     .map(u => ({ userId: u._id, roles: [] }));
                   setAssignedUsers(prev => [...prev, ...newUsers]);
                 }}
@@ -229,60 +228,33 @@ export default function AgendaEventEditor({ predate, id }: { predate?: string, i
             <div className="assigned-users-list">
                {assignedUsers.map((au, idx) => (
                  <div key={`${au.userId}-${idx}`} style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 6, padding: 8, border: '1px solid #f3f4f6', borderRadius: 6 }}>
-                   <div className="assigned-user-name" style={{ width: 220, fontWeight: 500 }}>{users.find(u => String(u._id) === String(au.userId))?.name || 'Usuário'}</div>
-                   {(() => {
-                     const roles = au.roles || [];
-                     return (
-                       <div style={{ display: 'flex', gap: 1 }}>
-                         <label style={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                           <input
-                             type="checkbox"
-                             checked={roles.includes('M.C.')}
-                             onChange={(e) => { e.stopPropagation(); toggleRole(idx, 'M.C.'); }}
-                           /> <span>M.C.</span>
-                         </label>
-                         <label style={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                           <input
-                             type="checkbox"
-                             checked={roles.includes('C.A.')}
-                             onChange={(e) => { e.stopPropagation(); toggleRole(idx, 'C.A.'); }}
-                           /> <span>C.A.</span>
-                         </label>
-                         <label style={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                           <input
-                             type="checkbox"
-                             checked={roles.includes('C.L.')}
-                             onChange={(e) => { e.stopPropagation(); toggleRole(idx, 'C.L.'); }}
-                           /> <span>C.L</span>
-                         </label>
-                         <label style={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                           <input
-                             type="checkbox"
-                             checked={roles.includes('C.D.')}
-                             onChange={(e) => { e.stopPropagation(); toggleRole(idx, 'C.D.'); }}
-                           /> <span>C.D.</span>
-                         </label>
-                       </div>
-                     );
-                   })()}
+                   <div className="assigned-user-name" style={{ flex: 1, fontWeight: 500 }}>{users.find(u => String(u._id) === String(au.userId))?.name || 'Usuário'}</div>
+                    <div style={{ width: 100 }}>
+                      <RoleMultiSelect
+                        selectedRoles={au.roles || []}
+                        onChange={(newRoles) => handleRolesChange(idx, newRoles)}
+                      />
+                    </div>
                    <button title="Remover" onClick={() => { setAssignedUsers(prev => prev.filter((_, i) => i !== idx)); }} style={{ marginLeft: 'auto', background: 'transparent', border: 'none', cursor: 'pointer' }}>🗑️</button>
                  </div>
                ))}
 
                <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
-                 <select onChange={e => {
+                 <select
+                  value=""
+                  onChange={e => {
                    const uid = e.target.value;
                    if (!uid) return;
+                   if (assignedUsers.find(au => au.userId === uid)) return;
                    setAssignedUsers(prev => [...prev, { userId: uid, roles: [] }]);
                  }} style={{ flex: 1, padding: 8, border: '1px solid #e5e7eb', borderRadius: 6 }}>
-                   <option value="">Adicionar usuário...</option>
+                   <option value="">Adicionar cerimoniário...</option>
                    {users
                    .filter(u => !u.archived)
                    .sort((a, b) => a.name.localeCompare(b.name))
                    .map(u => <option key={u._id} value={u._id}>{u.name}</option>)
                    }
                  </select>
-                 <div style={{ width: 120, color: '#666', alignSelf: 'center' }}>Funções</div>
                </div>
              </div>
            </div>
