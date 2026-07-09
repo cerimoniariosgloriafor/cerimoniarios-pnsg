@@ -198,16 +198,14 @@ export default function EventReportPage({ id, onBack }: EventReportPageProps) {
         if (bIdx === -1) return -1;
         return aIdx - bIdx;
       });
-      const checkedInTime = u.checkedInAt ? ` (Check-in ${new Date(u.checkedInAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })})` : '';
-      text += `• *${sortedRoles.join(', ')} - ${u.userId?.name || 'Desconhecido'}${checkedInTime}*\n`;
+      text += `• *${sortedRoles.join(', ')} - ${u.userId?.name || 'Desconhecido'}*\n`;
     });
 
     const faltosos = eventUsers.filter((u: any) => !u.roles || u.roles.length === 0);
     if (faltosos.length > 0) {
       text += `\n*Faltas:*\n`;
       faltosos.forEach(u => {
-        const checkedInTime = u.checkedInAt ? ` (Check-in ${new Date(u.checkedInAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })})` : '';
-        text += `- ${u.userId?.name || 'Desconhecido'}${checkedInTime}\n`;
+        text += `- ${u.userId?.name || 'Desconhecido'}\n`;
       });
     }
 
