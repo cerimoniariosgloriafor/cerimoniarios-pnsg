@@ -19,6 +19,22 @@ export default function EventDetailsModal({ event, authUser, users, existingRequ
   const [loading, setLoading] = useState(false);
   const [locLoading, setLocLoading] = useState(false);
 
+  const isActionable = () => {
+    if (!event || !event.date) return false;
+
+    const datePart = event.date.split('T')[0];
+    const eventDate = new Date(datePart + 'T00:00:00');
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const msInDay = 1000 * 60 * 60 * 24;
+    const diffInMs = today.getTime() - eventDate.getTime();
+    const diffInDays = Math.floor(diffInMs / msInDay);
+
+    return diffInDays < 2;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -301,7 +317,7 @@ export default function EventDetailsModal({ event, authUser, users, existingRequ
                     </div>
                   </div>
                 </div>
-                <button className="btn secondary" style={{ width: '100%', justifyContent: 'center', color: '#ef4444', borderColor: '#ef4444', backgroundColor: 'transparent' }} onClick={handleCancelCheckIn} disabled={loading}>
+                <button className="btn secondary" style={{ width: '100%', justifyContent: 'center', color: '#ef4444', borderColor: '#ef4444', backgroundColor: 'transparent' }} onClick={handleCancelCheckIn} disabled={loading || !isActionable()}>
                   {loading ? 'Cancelando...' : 'Cancelar Check-In'}
                 </button>
               </div>
@@ -321,7 +337,7 @@ export default function EventDetailsModal({ event, authUser, users, existingRequ
               </div>
             ) : (
               <>
-                <button className="btn" style={{ width: '100%', justifyContent: 'center', background: '#10b981', borderColor: '#10b981', color: '#fff' }} onClick={handleCheckIn} disabled={locLoading}>
+                <button className="btn" style={{ width: '100%', justifyContent: 'center', background: '#10b981', borderColor: '#10b981', color: '#fff' }} onClick={handleCheckIn} disabled={locLoading || !isActionable()}>
                   {locLoading ? 'Verificando localização...' : 'Fazer Check-In'}
                 </button>
                 <button className="btn" style={{ width: '100%', justifyContent: 'center', background: '#f59e0b', borderColor: '#f59e0b', color: '#fff' }} onClick={() => setShowForm(true)} disabled={locLoading || isEventPassed()}>

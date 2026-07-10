@@ -30,6 +30,7 @@ export default function EventReportPage({ id, onBack }: EventReportPageProps) {
   });
   const [expandedServos, setExpandedServos] = useState<boolean>(false);
   const [expandedOccurrences, setExpandedOccurrences] = useState<Record<string, boolean>>({});
+  const [isReadOnly, setIsReadOnly] = useState(true);
 
   const toggleRole = (role: string) => {
     setExpandedRoles(prev => ({ ...prev, [role]: !prev[role] }));
@@ -55,11 +56,20 @@ export default function EventReportPage({ id, onBack }: EventReportPageProps) {
       
       const data = eventRes.data;
       setEvent(data);
+
+      const datePart = data.date.split('T')[0];
+      const eventDate = new Date(datePart + 'T00:00:00');
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const msInDay = 1000 * 60 * 60 * 24;
+      const diffInMs = today.getTime() - eventDate.getTime();
+      const diffInDays = Math.floor(diffInMs / msInDay);
+      setIsReadOnly(diffInDays >= 2);
       
-      const eventDate = new Date(data.date);
+      const reportEventDate = new Date(data.date);
       const activeUsers = (usersRes.data || []).filter((u: any) => {
         if (u.archived) return false;
-        if (u.suspendedUntil && new Date(u.suspendedUntil) >= eventDate) return false;
+        if (u.suspendedUntil && new Date(u.suspendedUntil) >= reportEventDate) return false;
         return true;
       });
       setAvailableUsers(activeUsers);
@@ -103,6 +113,10 @@ export default function EventReportPage({ id, onBack }: EventReportPageProps) {
   };
 
   const handleSave = async (skipBack?: boolean | React.MouseEvent) => {
+    if (isReadOnly) {
+      alert('Este relatório não pode mais ser editado.');
+      return;
+    }
     const shouldSkipBack = skipBack === true;
     try {
       setSaving(true);
@@ -247,6 +261,11 @@ export default function EventReportPage({ id, onBack }: EventReportPageProps) {
         <div style={{ fontWeight: 700, fontSize: 16, color: '#1e293b' }}>{event.title || 'Evento sem título'}</div>
         <div style={{ color: '#64748b', fontSize: 14, marginTop: 4 }}>{event.locationId?.name}</div>
         <div style={{ color: '#64748b', fontSize: 14 }}>{new Date(event.date).toLocaleDateString()} às {event.time?.start}</div>
+        {isReadOnly && (
+          <div style={{ marginTop: 12, padding: '8px 12px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 6, color: '#b45309', fontSize: 14, fontWeight: 500 }}>
+            Este relatório está em modo de visualização e não pode mais ser editado.
+          </div>
+        )}
       </div>
 
       <div style={{ background: '#fff', padding: 16, borderRadius: 12, border: '1px solid #e2e8f0', marginBottom: 24 }}>
@@ -278,13 +297,13 @@ export default function EventReportPage({ id, onBack }: EventReportPageProps) {
                       <div style={{ fontSize: 14, color: '#1e293b', marginBottom: 8 }}>{item.task}</div>
                       <div style={{ display: 'flex', gap: 8 }}>
                         <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 14 }}>
-                          <input type="radio" name={`checklist-${item.idx}`} checked={item.status === 'Sim'} onChange={() => updateChecklistItem(item.idx, 'Sim')} /> Sim
+                          <input type="radio" name={`checklist-${item.idx}`} checked={item.status === 'Sim'} onChange={() => updateChecklistItem(item.idx, 'Sim')} disabled={isReadOnly} /> Sim
                         </label>
                         <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 14 }}>
-                          <input type="radio" name={`checklist-${item.idx}`} checked={item.status === 'Nao'} onChange={() => updateChecklistItem(item.idx, 'Nao')} /> Não
+                          <input type="radio" name={`checklist-${item.idx}`} checked={item.status === 'Nao'} onChange={() => updateChecklistItem(item.idx, 'Nao')} disabled={isReadOnly} /> Não
                         </label>
                         <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 14 }}>
-                          <input type="radio" name={`checklist-${item.idx}`} checked={item.status === 'N/A'} onChange={() => updateChecklistItem(item.idx, 'N/A')} /> N/A
+                          <input type="radio" name={`checklist-${item.idx}`} checked={item.status === 'N/A'} onChange={() => updateChecklistItem(item.idx, 'N/A')} disabled={isReadOnly} /> N/A
                         </label>
                       </div>
                     </div>
@@ -305,6 +324,7 @@ export default function EventReportPage({ id, onBack }: EventReportPageProps) {
           onChange={e => setAcolyteCount(parseInt(e.target.value) || 0)} 
           min="0"
           style={{ width: '100px' }}
+          readOnly={isReadOnly}
         />
       </div>
 
@@ -350,6 +370,7 @@ export default function EventReportPage({ id, onBack }: EventReportPageProps) {
                                }
                              }}
                              title="Remover usuário da lista"
+                             disabled={isReadOnly}
                           >
                              🗑️
                           </button>
@@ -375,6 +396,7 @@ export default function EventReportPage({ id, onBack }: EventReportPageProps) {
                             }
                             setEventUsers(newUsers);
                           }}
+                          disabled={isReadOnly}
                         />
                         {role}
                       </label>
@@ -387,7 +409,7 @@ export default function EventReportPage({ id, onBack }: EventReportPageProps) {
         </div>
 
         <div style={{ marginTop: 16, display: 'flex', gap: 8, alignItems: 'stretch', flexWrap: 'wrap' }}>
-          <select className="input" style={{ flex: 1 }} value={userToAdd} onChange={e => setUserToAdd(e.target.value)}>
+          <select className="input" style={{ flex: 1 }} value={userToAdd} onChange={e => setUserToAdd(e.target.value)} disabled={isReadOnly}>
             <option value="">Adicionar substituto</option>
             {availableUsers.filter(u => !eventUsers.find(eu => eu.userId?._id === u._id)).map(u => (
               <option key={u._id} value={u._id}>{u.name}</option>
@@ -401,7 +423,7 @@ export default function EventReportPage({ id, onBack }: EventReportPageProps) {
               setOccurrences([...occurrences, { userId: u, note: '' }]);
               setUserToAdd('');
             }
-          }}>Adicionar</button>
+          }} disabled={isReadOnly}>Adicionar</button>
         </div>
           </>
         )}
@@ -467,7 +489,7 @@ export default function EventReportPage({ id, onBack }: EventReportPageProps) {
                         placeholder="Descreva se houve alguma intercorrência ou observação para sua função..."
                         value={occ?.note || ''}
                         onChange={e => updateOccurrence(uid, e.target.value)}
-                        disabled={user?._id !== uid}
+                        disabled={isReadOnly || user?._id !== uid}
                       />
                     </div>
                   )}
@@ -484,7 +506,7 @@ export default function EventReportPage({ id, onBack }: EventReportPageProps) {
         <button className="btn" style={{ flex: 1, justifyContent: 'center', padding: '14px', fontSize: 16, background: '#10b981' }} onClick={exportToWhatsApp}>
           WhatsApp
         </button>
-        <button className="btn" style={{ flex: 1, justifyContent: 'center', padding: '14px', fontSize: 16 }} onClick={handleSave} disabled={saving}>
+        <button className="btn" style={{ flex: 1, justifyContent: 'center', padding: '14px', fontSize: 16 }} onClick={handleSave} disabled={saving || isReadOnly}>
           {saving ? 'Salvando...' : 'Salvar'}
         </button>
       </div>

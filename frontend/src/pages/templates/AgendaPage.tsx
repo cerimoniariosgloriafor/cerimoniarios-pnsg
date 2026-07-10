@@ -195,7 +195,12 @@ export default function AgendaPage() {
                           {ev.title ? (ev.title.length > 60 ? ev.title.slice(0, 57) + '...' : ev.title) : 'Evento'}
                         </div>
                         <div style={{ color: '#444', marginTop: 6, display: 'flex', gap: 8, alignItems: 'center', fontSize: 14 }}>
-                          <div>{ev.locationId?.name || ''}</div>
+                          {ev.locationId?.name && (
+                            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                              <span style={{ color: ev.locationId?.color || '#ccc', fontSize: '1.2em', lineHeight: '1' }}>●</span>
+                              <span>{ev.locationId.name}</span>
+                            </span>
+                          )}
                         </div>
                         <div style={{ color: '#444', marginTop: 6, display: 'flex', gap: 8, alignItems: 'center', fontSize: 14 }}>
                           <div style={{ color: '#666' }}>{ev.time?.start}</div>
