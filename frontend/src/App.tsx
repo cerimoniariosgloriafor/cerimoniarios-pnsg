@@ -700,7 +700,14 @@ export default function App() {
                                       <div style={{ width: 60, fontWeight: 700, fontSize: 16, color: '#334155' }}>{ev.time?.start || '—'}</div>
                                       <div style={{ flex: 1, borderLeft: '1px solid #f1f5f9', paddingLeft: 12 }}>
                                         <div style={{ fontWeight: 600, color: '#1e293b' }}>{ev.title || (ev.locationId?.name || 'Local não informado')}</div>
-                                        <div style={{ color: '#64748b', fontSize: 13, marginTop: 2 }}>{ev.locationId?.name ? `${ev.locationId?.name}` : ''} </div>
+                                        <div style={{ color: '#64748b', fontSize: 13, marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                          {ev.locationId?.name && (
+                                            <>
+                                              <span style={{ color: ev.locationId?.color || '#ccc', fontSize: '1.2em', lineHeight: '1' }}>●</span>
+                                              <span>{ev.locationId.name}</span>
+                                            </>
+                                          )}
+                                        </div>
                                         <div style={{ color: '#64748b', fontSize: 13 }}>{ev.priestName ? `Presidida por ${ev.priestName}` : ''} </div>
                                         <div style={{ marginTop: 6, fontSize: 13 }}>
                                           <span style={{ background: '#e0e7ff', color: '#0f172a', padding: '2px 6px', borderRadius: 4, fontWeight: 500 }}>
