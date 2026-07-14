@@ -92,7 +92,7 @@ export const buildPrintableReport = (
     });
 
     lines.push({
-      text: `Acólitos: ${event.acolyteCount || 0}`,
+      text: `Coroinhas: ${event.acolyteCount || 0}`,
     });
 
     lines.push({ text: '' });

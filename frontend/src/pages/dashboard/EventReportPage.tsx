@@ -223,7 +223,7 @@ export default function EventReportPage({ id, onBack }: EventReportPageProps) {
       });
     }
 
-    text += `\n*Acólitos - ${acolyteCount}*\n`;
+    text += `\n*Coroinhas - ${acolyteCount}*\n`;
 
     const occsWithNotes = occurrences.filter(o => o.note && o.note.trim() !== '');
     if (occsWithNotes.length > 0) {
@@ -316,7 +316,7 @@ export default function EventReportPage({ id, onBack }: EventReportPageProps) {
       </div>
 
       <div style={{ background: '#fff', padding: 16, borderRadius: 12, border: '1px solid #e2e8f0', marginBottom: 24 }}>
-        <h3 style={{ margin: '0 0 16px 0', fontSize: 16, color: '#1e293b' }}>Quantidade de Acólitos</h3>
+        <h3 style={{ margin: '0 0 16px 0', fontSize: 16, color: '#1e293b' }}>Quantidade de Coroinhas</h3>
         <input 
           type="number" 
           className="input" 
