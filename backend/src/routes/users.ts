@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import User from '../models/user';
 import bcrypt from 'bcryptjs';
+import AgendaEvent from '../models/agendaEvent';
+import ShiftTemplate from '../models/shiftTemplate';
 
 const router = Router();
 
@@ -122,7 +124,26 @@ router.post('/:id/toggle-archive', async (req, res) => {
     const { id } = req.params;
     const user = await User.findById(id);
     if (!user) return res.status(404).json({ error: 'user not found' });
-    (user as any).archived = !(user as any).archived;
+
+    const isArchiving = !(user as any).archived;
+    (user as any).archived = isArchiving;
+
+    if (isArchiving) {
+      const userId = user._id;
+
+      // Remove from future Agenda Events
+      await AgendaEvent.updateMany(
+        { date: { $gte: new Date() }, 'users.userId': userId },
+        { $pull: { users: { userId: userId } } }
+      );
+
+      // Remove from Shift Templates
+      await ShiftTemplate.updateMany(
+        { users: userId },
+        { $pull: { users: userId } }
+      );
+    }
+
     await user.save();
     res.json({ success: true, archived: (user as any).archived });
   } catch (err) {
