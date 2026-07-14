@@ -295,13 +295,22 @@ export default function EventDetailsModal({ event, authUser, users, existingRequ
             </button>
             
             {myUser?.checkedInAt && (
-              <button className="btn" style={{ width: '100%', justifyContent: 'center', background: '#3b82f6', borderColor: '#3b82f6', color: '#fff' }} onClick={() => {
-                window.history.pushState({}, '', `/agenda/${event._id}/report`);
-                window.dispatchEvent(new PopStateEvent('popstate'));
-                onClose();
-              }}>
-                Relatório da Missa
-              </button>
+              <>
+                <button className="btn" style={{ width: '100%', justifyContent: 'center', background: '#178b57ff', borderColor: '#178b57ff', color: '#fff'  }} onClick={() => {
+                  window.history.pushState({}, '', `/agenda/${event._id}/checklist`);
+                  window.dispatchEvent(new PopStateEvent('popstate'));
+                  onClose();
+                }}>
+                  Check-list da Função
+                </button>
+                <button className="btn" style={{ width: '100%', justifyContent: 'center', background: '#3b82f6', borderColor: '#3b82f6', color: '#fff' }} onClick={() => {
+                  window.history.pushState({}, '', `/agenda/${event._id}/report`);
+                  window.dispatchEvent(new PopStateEvent('popstate'));
+                  onClose();
+                }}>
+                  Relatório da Missa
+                </button>
+              </>
             )}
 
             {myUser?.checkedInAt ? (

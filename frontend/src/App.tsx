@@ -18,6 +18,7 @@ import IndividualReportPage from './pages/reports/IndividualReportPage';
 import LoginPage from './pages/auth/LoginPage';
 import ChangePasswordModal from './components/ChangePasswordModal';
 import RoleFunctionsPage from './pages/functions/RoleFunctionsPage';
+import EventChecklistPage from './pages/checklist/EventChecklistPage';
 import EventDetailsModal from './components/EventDetailsModal';
 import logo from './assets/logo.png';
 import { MaterialsPage } from './pages/materials/MaterialsPage';
@@ -54,6 +55,7 @@ export default function App() {
     if (p === '/agenda') return 'templates_agenda';
     if (p === '/agenda/new') return 'agenda_new';
     if (p.startsWith('/agenda/') && p.endsWith('/report')) return 'agenda_report';
+    if (p.startsWith('/agenda/') && p.endsWith('/checklist')) return 'agenda_checklist';
     if (p.startsWith('/agenda/')) return 'agenda_edit';
     if (p.startsWith('/templates/')) return 'template_edit';
     if (p === '/locations/new') return 'location_new';
@@ -220,6 +222,8 @@ export default function App() {
       setPage('agenda_new'); setCurrentId(null);
     } else if (normalized.startsWith('/agenda/') && normalized.endsWith('/report')) {
       setPage('agenda_report'); setCurrentId(normalized.split('/')[2]);
+    } else if (normalized.startsWith('/agenda/') && normalized.endsWith('/checklist')) {
+      setPage('agenda_checklist'); setCurrentId(normalized.split('/')[2]);
     } else if (normalized.startsWith('/agenda/')) {
       setPage('agenda_edit'); setCurrentId(normalized.replace('/agenda/', ''));
     } else if (normalized.startsWith('/templates/')) {
@@ -260,6 +264,7 @@ export default function App() {
       else if (p === '/agenda') { setPage('templates_agenda'); setCurrentId(null); }
       else if (p === '/agenda/new') { setPage('agenda_new'); setCurrentId(null); }
       else if (p.startsWith('/agenda/') && p.endsWith('/report')) { setPage('agenda_report'); setCurrentId(p.split('/')[2]); }
+      else if (p.startsWith('/agenda/') && p.endsWith('/checklist')) { setPage('agenda_checklist'); setCurrentId(p.split('/')[2]); }
       else if (p.startsWith('/agenda/')) { setPage('agenda_edit'); setCurrentId(p.replace('/agenda/', '')); }
       else if (p.startsWith('/templates/')) { setPage('template_edit'); setCurrentId(p.replace('/templates/', '')); }
       else if (p === '/locations/new') { setPage('location_new'); setCurrentId(null); }
@@ -878,6 +883,9 @@ export default function App() {
               )}
               {page === 'agenda_report' && currentId && (
                 <EventReportPage id={currentId} onBack={() => navigate('/')} />
+              )}
+              {page === 'agenda_checklist' && currentId && (
+                <EventChecklistPage id={currentId} onBack={() => navigate('/')} />
               )}
             </>
           )}

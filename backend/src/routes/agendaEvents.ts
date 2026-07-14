@@ -223,4 +223,43 @@ router.post('/:id/cancel-checkin', async (req, res) => {
   }
 });
 
+router.put('/:id/checklist-status', async (req, res) => {
+  try {
+    const AgendaEvent = require('../models/agendaEvent').default;
+    const { role, task, status, userId } = req.body;
+
+    if (!role || !task || !status || !userId) {
+      return res.status(400).json({ error: 'Role, task, status, and userId are required.' });
+    }
+
+    const event = await AgendaEvent.findById(req.params.id);
+    if (!event) {
+      return res.status(404).json({ error: 'Event not found.' });
+    }
+
+    // Find the checklist item and update its status
+    let itemFound = false;
+    for (const item of event.checklist) {
+      if (item.role === role && item.task === task) {
+        item.status = status;
+        item.updatedBy = userId;
+        item.updatedAt = new Date();
+        itemFound = true;
+        break;
+      }
+    }
+
+    if (!itemFound) {
+        // If the item doesn't exist, add it
+        event.checklist.push({ role, task, status, updatedBy: userId, updatedAt: new Date() });
+    }
+
+    await event.save();
+    res.json({ success: true, message: 'Checklist item updated successfully.' });
+  } catch (err) {
+    console.error('Failed to update checklist item status', err);
+    res.status(500).json({ error: 'Failed to update checklist item status', details: (err as any)?.message });
+  }
+});
+
 export default router;

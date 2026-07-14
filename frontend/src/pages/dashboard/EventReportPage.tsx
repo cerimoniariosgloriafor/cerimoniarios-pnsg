@@ -12,7 +12,6 @@ export default function EventReportPage({ id, onBack }: EventReportPageProps) {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   
-  const [checklist, setChecklist] = useState<any[]>([]);
   const [acolyteCount, setAcolyteCount] = useState<number>(0);
   const [occurrences, setOccurrences] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
@@ -22,19 +21,9 @@ export default function EventReportPage({ id, onBack }: EventReportPageProps) {
   const [availableRoles, setAvailableRoles] = useState<string[]>([]);
   const [userToAdd, setUserToAdd] = useState('');
 
-  const [expandedRoles, setExpandedRoles] = useState<Record<string, boolean>>({
-    'M.C.': false,
-    'C.A.': false,
-    'C.L.': false,
-    'C.D.': false,
-  });
   const [expandedServos, setExpandedServos] = useState<boolean>(false);
   const [expandedOccurrences, setExpandedOccurrences] = useState<Record<string, boolean>>({});
   const [isReadOnly, setIsReadOnly] = useState(true);
-
-  const toggleRole = (role: string) => {
-    setExpandedRoles(prev => ({ ...prev, [role]: !prev[role] }));
-  };
 
   const toggleOccurrence = (userId: string) => {
     setExpandedOccurrences(prev => ({ ...prev, [userId]: !prev[userId] }));
@@ -88,13 +77,6 @@ export default function EventReportPage({ id, onBack }: EventReportPageProps) {
       });
       setAvailableRoles(roles);
       
-      const existingChecklist = data.checklist || [];
-      const mergedChecklist = defaultChecklist.map((defaultItem: any) => {
-        const found = existingChecklist.find((i: any) => i.role === defaultItem.role && i.task === defaultItem.task);
-        if (found) return found;
-        return { ...defaultItem, status: 'N/A' };
-      });
-      setChecklist(mergedChecklist);
       setAcolyteCount(data.acolyteCount || 0);
       
       const existingOccs = data.occurrences || [];
@@ -121,7 +103,6 @@ export default function EventReportPage({ id, onBack }: EventReportPageProps) {
     try {
       setSaving(true);
       const payload = {
-        checklist,
         acolyteCount,
         occurrences: occurrences.filter(o => o.note.trim() !== ''),
         users: eventUsers.map((eu: any) => ({
@@ -144,17 +125,6 @@ export default function EventReportPage({ id, onBack }: EventReportPageProps) {
     }
   };
 
-  const updateChecklistItem = (idx: number, status: string) => {
-    const newChecklist = [...checklist];
-    newChecklist[idx] = {
-      ...newChecklist[idx],
-      status,
-      updatedBy: user?._id,
-      updatedAt: new Date()
-    };
-    setChecklist(newChecklist);
-  };
-
   const updateOccurrence = (userId: string, note: string) => {
     const newOccs = occurrences.map(o => {
       if (String(o.userId?._id || o.userId) === String(userId)) {
@@ -172,12 +142,6 @@ export default function EventReportPage({ id, onBack }: EventReportPageProps) {
   if (!event) {
     return <div className="page" style={{ padding: 24, textAlign: 'center' }}>Evento não encontrado</div>;
   }
-
-  const groupedChecklist = checklist.reduce((acc, item, idx) => {
-    if (!acc[item.role]) acc[item.role] = [];
-    acc[item.role].push({ ...item, idx });
-    return acc;
-  }, {} as any);
 
   const exportToWhatsApp = () => {
     const evDate = new Date(event.date);
@@ -266,53 +230,6 @@ export default function EventReportPage({ id, onBack }: EventReportPageProps) {
             Este relatório está em modo de visualização e não pode mais ser editado.
           </div>
         )}
-      </div>
-
-      <div style={{ background: '#fff', padding: 16, borderRadius: 12, border: '1px solid #e2e8f0', marginBottom: 24 }}>
-        <h3 style={{ margin: '0 0 16px 0', fontSize: 16, color: '#1e293b' }}>Check-list das Funções</h3>
-        
-        {availableRoles.map(role => {
-          if (!groupedChecklist[role]) return null;
-          const isExpanded = expandedRoles[role];
-          return (
-            <div key={role} style={{ marginBottom: 24, border: '1px solid #e2e8f0', borderRadius: 8, overflow: 'hidden' }}>
-              <div 
-                style={{ 
-                  fontWeight: 700, fontSize: 15, color: '#334155', padding: '12px 16px', background: '#f8fafc', 
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer',
-                  borderBottom: isExpanded ? '1px solid #e2e8f0' : 'none'
-                }}
-                onClick={() => toggleRole(role)}
-              >
-                <span>{role}</span>
-                <span style={{ fontSize: 18, color: '#64748b' }}>
-                  {isExpanded ? '⌃' : '⌄'}
-                </span>
-              </div>
-              
-              {isExpanded && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: 16 }}>
-                  {groupedChecklist[role].map((item: any) => (
-                    <div key={item.idx} style={{ background: '#f8fafc', padding: 12, borderRadius: 8, border: '1px solid #e2e8f0' }}>
-                      <div style={{ fontSize: 14, color: '#1e293b', marginBottom: 8 }}>{item.task}</div>
-                      <div style={{ display: 'flex', gap: 8 }}>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 14 }}>
-                          <input type="radio" name={`checklist-${item.idx}`} checked={item.status === 'Sim'} onChange={() => updateChecklistItem(item.idx, 'Sim')} disabled={isReadOnly} /> Sim
-                        </label>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 14 }}>
-                          <input type="radio" name={`checklist-${item.idx}`} checked={item.status === 'Nao'} onChange={() => updateChecklistItem(item.idx, 'Nao')} disabled={isReadOnly} /> Não
-                        </label>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 14 }}>
-                          <input type="radio" name={`checklist-${item.idx}`} checked={item.status === 'N/A'} onChange={() => updateChecklistItem(item.idx, 'N/A')} disabled={isReadOnly} /> N/A
-                        </label>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-        })}
       </div>
 
       <div style={{ background: '#fff', padding: 16, borderRadius: 12, border: '1px solid #e2e8f0', marginBottom: 24 }}>
