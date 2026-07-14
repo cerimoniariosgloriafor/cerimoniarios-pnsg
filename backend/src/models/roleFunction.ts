@@ -2,7 +2,8 @@ import mongoose from 'mongoose';
 
 const roleFunctionSchema = new mongoose.Schema({
   role: { type: String, required: true },
-  task: { type: String, required: true }
+  task: { type: String, required: true },
+  position: { type: Number }
 }, {
   timestamps: true
 });

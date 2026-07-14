@@ -9,11 +9,8 @@ export default function RoleFunctionsPage() {
   const [role, setRole] = useState('');
   const [task, setTask] = useState('');
   const { user } = useAuth();
-  
-  const [touchStartX, setTouchStartX] = useState<number | null>(null);
-  const [draggingId, setDraggingId] = useState<string | null>(null);
-  const [swipedId, setSwipedId] = useState<string | null>(null);
-  const [pointerStartX, setPointerStartX] = useState<number | null>(null);
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchFunctions();
@@ -38,9 +35,7 @@ export default function RoleFunctionsPage() {
       } else {
         await axios.post('/role-functions', { role, task });
       }
-      setRole('');
-      setTask('');
-      setEditingId(null);
+      handleCancel();
       fetchFunctions();
     } catch (err) {
       console.error('Failed to save role function', err);
@@ -52,12 +47,15 @@ export default function RoleFunctionsPage() {
     setEditingId(fn._id);
     setRole(fn.role);
     setTask(fn.task);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async () => {
+    if (!editingId) return;
     if (!confirm('Deseja realmente excluir esta função?')) return;
     try {
-      await axios.delete(`/role-functions/${id}`);
+      await axios.delete(`/role-functions/${editingId}`);
+      handleCancel();
       fetchFunctions();
     } catch (err) {
       console.error('Failed to delete role function', err);
@@ -71,41 +69,66 @@ export default function RoleFunctionsPage() {
     setTask('');
   };
 
-  const handleTouchStart = (e: any, id: string) => {
-    setTouchStartX(e.touches?.[0]?.clientX ?? null);
-    setDraggingId(id);
+  const onDragStart = (e: any, id: string) => {
+    setDraggedId(id);
+    try { e.dataTransfer.setData('text/plain', id); e.dataTransfer.effectAllowed = 'move'; } catch (err) {}
   };
 
-  const handleTouchMove = (e: any) => {
-    if (!draggingId || touchStartX === null) return;
-    const x = e.touches?.[0]?.clientX ?? null;
-    if (x === null) return;
-    const dx = x - touchStartX;
-    if (dx < -40) setSwipedId(draggingId);
-    if (dx > 40) setSwipedId(null);
+  const onDragOver = (e: any, id: string) => {
+    e.preventDefault();
+    if (dragOverId !== id) setDragOverId(id);
   };
 
-  const handleTouchEnd = () => { setTouchStartX(null); setDraggingId(null); };
+  const onDrop = async (e: any, id: string) => {
+    e.preventDefault();
+    if (!draggedId) return;
 
-  const handlePointerDown = (e: any, id: string) => {
-    setPointerStartX(e.clientX ?? null);
-    setDraggingId(id);
-    try { (e.target as Element).setPointerCapture?.(e.pointerId); } catch (err) {}
+    const fromFunction = functions.find(f => f._id === draggedId);
+    const toFunction = functions.find(f => f._id === id);
+
+    if (!fromFunction || !toFunction || fromFunction.role !== toFunction.role) {
+      setDraggedId(null);
+      setDragOverId(null);
+      return;
+    }
+
+    const roleKey = fromFunction.role;
+    const itemsForRole = functions.filter(f => f.role === roleKey);
+    const otherItems = functions.filter(f => f.role !== roleKey);
+
+    const fromIndex = itemsForRole.findIndex(f => f._id === draggedId);
+    const toIndex = itemsForRole.findIndex(f => f._id === id);
+
+    if (fromIndex === -1 || toIndex === -1) {
+      setDraggedId(null);
+      setDragOverId(null);
+      return;
+    }
+
+    const reorderedItems = [...itemsForRole];
+    const [movedItem] = reorderedItems.splice(fromIndex, 1);
+    reorderedItems.splice(toIndex, 0, movedItem);
+
+    const newFunctions = [...otherItems, ...reorderedItems];
+    setFunctions(newFunctions);
+
+    setDraggedId(null);
+    setDragOverId(null);
+
+    try {
+      const orderedIds = reorderedItems.map(f => f._id);
+      await axios.put('/role-functions/reorder', { role: roleKey, orderedIds });
+      fetchFunctions(); // a good practice to re-fetch to ensure consistency
+    } catch (err) {
+      console.error('Failed to reorder role functions', err);
+      alert('Erro ao reordenar as funções.');
+      fetchFunctions(); // revert on error
+    }
   };
 
-  const handlePointerMove = (e: any) => {
-    if (!draggingId || pointerStartX === null) return;
-    const x = e.clientX ?? null;
-    if (x === null) return;
-    const dx = x - pointerStartX;
-    if (dx < -40) setSwipedId(draggingId);
-    if (dx > 40) setSwipedId(null);
-  };
-
-  const handlePointerUp = (e?: any) => {
-    setPointerStartX(null);
-    setDraggingId(null);
-    try { (e?.target as Element)?.releasePointerCapture?.(e?.pointerId); } catch (err) {}
+  const onDragEnd = () => {
+    setDraggedId(null);
+    setDragOverId(null);
   };
 
   if (user?.role !== 'admin') {
@@ -117,6 +140,16 @@ export default function RoleFunctionsPage() {
     acc[fn.role].push(fn);
     return acc;
   }, {} as any);
+
+  const roleOrder = ["M.C.", "C.A.", "C.L.", "C.D."];
+  const sortedRoles = Object.keys(grouped).sort((a, b) => {
+    const indexA = roleOrder.indexOf(a);
+    const indexB = roleOrder.indexOf(b);
+    if (indexA === -1 && indexB === -1) return a.localeCompare(b);
+    if (indexA === -1) return 1;
+    if (indexB === -1) return -1;
+    return indexA - indexB;
+  });
 
   return (
     <div className="page" style={{ background: '#f8fafc', minHeight: '100vh', padding: '16px' }}>
@@ -152,11 +185,16 @@ export default function RoleFunctionsPage() {
               style={{ resize: 'both', fontFamily: 'inherit', minWidth: '100%', maxWidth: '100%' }}
             />
           </div>
-          <div style={{ display: 'flex', gap: 12 }}>
-            <button type="submit" className="btn primary">{editingId ? 'Salvar Alterações' : 'Adicionar'}</button>
-            {editingId && (
-              <button type="button" className="btn secondary" onClick={handleCancel}>Cancelar</button>
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'space-between' }}>
+            <div>
+              <button type="submit" className="btn primary">{editingId ? 'Salvar Alterações' : 'Adicionar'}</button>
+              {editingId && (
+                <button type="button" className="btn secondary" onClick={handleCancel} style={{ marginLeft: 8 }}>Cancelar</button>
+              )}
+              {editingId && (
+              <button type="button" className="btn danger" onClick={handleDelete}>Remover</button>
             )}
+            </div>
           </div>
         </form>
       </div>
@@ -165,38 +203,34 @@ export default function RoleFunctionsPage() {
         <div>Carregando...</div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-          {Object.keys(grouped).sort().map(roleKey => (
+          {sortedRoles.map(roleKey => (
             <div key={roleKey} style={{ background: '#fff', padding: 20, borderRadius: 12, border: '1px solid #e2e8f0' }}>
               <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#1e293b', borderBottom: '2px solid #e2e8f0', paddingBottom: 8 }}>
                 {roleKey}
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {grouped[roleKey].map((fn: any) => (
-                  <div key={fn._id} style={{ position: 'relative', overflow: 'hidden', borderRadius: 8 }}>
-                    <div
-                      onTouchStart={(e) => handleTouchStart(e, fn._id)}
-                      onTouchMove={handleTouchMove}
-                      onTouchEnd={handleTouchEnd}
-                      onPointerDown={(e) => handlePointerDown(e, fn._id)}
-                      onPointerMove={handlePointerMove}
-                      onPointerUp={handlePointerUp}
-                      style={{
-                        display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 12, background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0',
-                        transform: swipedId === fn._id ? 'translateX(-140px)' : 'translateX(0)',
-                        transition: 'transform 180ms ease-out',
-                        touchAction: 'pan-y',
-                        userSelect: 'none'
-                      }}
-                    >
-                      <span style={{ flex: 1 }}>{fn.task}</span>
-                      <span style={{ color: '#94a3b8', fontSize: 18, fontWeight: 'bold', marginLeft: 8 }} aria-hidden>‹‹</span>
-                    </div>
-                    {swipedId === fn._id && (
-                      <div style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', display: 'flex', gap: 8 }}>
-                        <button className="btn secondary" onClick={() => { handleEdit(fn); setSwipedId(null); }} style={{ padding: '4px 8px', fontSize: 12 }}>Editar</button>
-                        <button className="btn danger" onClick={() => { handleDelete(fn._id); setSwipedId(null); }} style={{ padding: '4px 8px', fontSize: 12 }}>Excluir</button>
-                      </div>
-                    )}
+                  <div
+                    key={fn._id}
+                    draggable
+                    onDragStart={(e) => onDragStart(e, fn._id)}
+                    onDragOver={(e) => onDragOver(e, fn._id)}
+                    onDrop={(e) => onDrop(e, fn._id)}
+                    onDragEnd={onDragEnd}
+                    onClick={() => handleEdit(fn)}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: 12,
+                      background: dragOverId === fn._id ? '#f0f9ff' : '#f8fafc',
+                      borderRadius: 8,
+                      border: '1px solid #e2e8f0',
+                      cursor: 'grab',
+                      opacity: draggedId === fn._id ? 0.5 : 1,
+                    }}
+                  >
+                    <span style={{ flex: 1 }}>{fn.task}</span>
                   </div>
                 ))}
               </div>
