@@ -5,8 +5,8 @@ interface QuickNavProps {
 }
 
 const navItems = [
-  { path: '/templates/monthly', label: 'Fixas', icon: '🗓️' },
-  { path: '/templates/weekly', label: 'Rotativas', icon: '🔄' },
+  { path: '/templates/weekly', label: 'Fixas', icon: '🗓️' },
+  { path: '/templates/monthly', label: 'Rotativas', icon: '🔄' },
   { path: '/agenda', label: 'Agenda', icon: '📅' },
 ];
 

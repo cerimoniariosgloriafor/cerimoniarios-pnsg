@@ -106,7 +106,7 @@ function buildWhatsAppText(event: any, substitutionRequests: any[]) {
     });
   }
 
-  text += `\n*Acólitos:* ${event.acolyteCount || 0}\n`;
+  text += `\n*Coroinhas:* ${event.acolyteCount || 0}\n`;
 
   const occs = (event.occurrences || []).filter((o: any) => String(o.note || '').trim() !== '');
   if (occs.length > 0) {
@@ -260,7 +260,7 @@ function IndividualReportModal({
               </div>
             </div>
             <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 14, padding: 14 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Acólitos</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Coroinhas</div>
               <div style={{ marginTop: 6, fontSize: 16, fontWeight: 600, color: '#0f172a' }}>{event.acolyteCount || 0}</div>
             </div>
           </section>
