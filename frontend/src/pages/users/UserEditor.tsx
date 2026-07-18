@@ -146,8 +146,12 @@ export default function UserEditor({ id, onSaved, isProfile, isAdmin = true }: a
         {loading ? <div>Carregando...</div> : (
           <form onSubmit={submit}>
             <div className="form-row">
-              <label className="input-label">Nome</label>
-              <input className="input" placeholder="Nome" value={name} onChange={e => setName(e.target.value)} required />
+              {isAdmin && (
+                <>
+                  <label className="input-label">Nome</label>
+                  <input className="input" placeholder="Nome" value={name} onChange={e => setName(e.target.value)} required />
+                </>
+              )}
               <label className="input-label">Nome completo</label>
               <input className="input" placeholder="Nome completo" value={fullName} onChange={e => setFullName(e.target.value)} />
               {isAdmin && (
