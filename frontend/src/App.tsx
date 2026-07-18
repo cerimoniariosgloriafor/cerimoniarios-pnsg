@@ -713,7 +713,7 @@ export default function App() {
                                             </>
                                           )}
                                         </div>
-                                        <div style={{ color: '#64748b', fontSize: 13 }}>{ev.priestName ? `Presidida por ${ev.priestName}` : ''} </div>
+                                        <div style={{ color: '#64748b', fontSize: 13 }}>{ev.priestName ? `Celebrante: ${ev.priestName}` : ''} </div>
                                         <div style={{ marginTop: 6, fontSize: 13 }}>
                                           <span style={{ background: '#e0e7ff', color: '#0f172a', padding: '2px 6px', borderRadius: 4, fontWeight: 500 }}>
                                             {(myUser.roles || []).join(', ') || 'Sem função'}
