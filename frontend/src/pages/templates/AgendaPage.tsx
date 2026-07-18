@@ -191,10 +191,7 @@ export default function AgendaPage() {
                         tabIndex={isServo ? -1 : 0}
                         aria-disabled={isServo}
                       >
-                        <div style={{ fontWeight: 700 }}>
-                          {ev.title ? (ev.title.length > 60 ? ev.title.slice(0, 57) + '...' : ev.title) : 'Evento'}
-                        </div>
-                        <div style={{ color: '#444', marginTop: 6, display: 'flex', gap: 8, alignItems: 'center', fontSize: 14 }}>
+                        <div style={{ marginTop: 6, display: 'flex', gap: 8, alignItems: 'center', fontSize: 16, fontWeight: 800 }}>
                           {ev.locationId?.name && (
                             <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                               <span style={{ color: ev.locationId?.color || '#ccc', fontSize: '1.2em', lineHeight: '1' }}>●</span>
@@ -202,11 +199,14 @@ export default function AgendaPage() {
                             </span>
                           )}
                         </div>
-                        <div style={{ color: '#444', marginTop: 6, display: 'flex', gap: 8, alignItems: 'center', fontSize: 14 }}>
-                          <div style={{ color: '#666' }}>{ev.time?.start}</div>
+                        <div style={{ marginTop: 6, display: 'flex', gap: 8, alignItems: 'center', fontSize: 15 }}>
+                          <div style={{ fontWeight: 800 }}>{ev.time?.start}</div>
+                        </div>
+                        <div style={{ fontSize: 14, marginTop: 6 }}>
+                          {ev.title ? (ev.title.length > 60 ? ev.title.slice(0, 57) + '...' : ev.title) : 'Evento'}
                         </div>
                         {ev.priestName ? (
-                          <div style={{ color: '#444', marginTop: 6, fontSize: 14 }}>{ev.priestName}</div>
+                          <div style={{ marginTop: 6, fontSize: 14 }}>{ev.priestName}</div>
                         ) : null}
                        <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
                           {(() => {
@@ -224,8 +224,8 @@ export default function AgendaPage() {
                               const list = map[r] || [];
                               list.forEach((name, idx) => {
                                 elems.push(
-                                  <div key={`${r}-${idx}`} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                                    <div style={{ width: 36, fontWeight: 600, textAlign: 'right' }}>{r}</div>
+                                  <div key={`${r}-${idx}`} style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 14 }}>
+                                    <div style={{ width: 28, fontWeight: 600, textAlign: 'left' }}>{r}</div>
                                     <div style={{ color: '#000000ff', margin: '0 1px' }}>|</div>
                                     <div>{name}</div>
                                   </div>
