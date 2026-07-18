@@ -411,6 +411,27 @@ export default function App() {
     }
   };
 
+  const handleAcceptSubstitute = async (reqId: string) => {
+    try {
+        await axios.post(`/substitution-requests/${reqId}/accept-substitute`);
+        alert('Substituição aceita! A solicitação foi enviada para aprovação dos coordenadores.');
+        window.location.reload();
+    } catch (err) {
+        alert('Erro ao aceitar a substituição.');
+    }
+  };
+
+  const handleRejectSubstitute = async (reqId: string) => {
+    if (!window.confirm('Tem certeza que deseja recusar esta substituição?')) return;
+    try {
+        await axios.post(`/substitution-requests/${reqId}/reject-substitute`);
+        alert('Substituição recusada.');
+        window.location.reload();
+    } catch (err) {
+        alert('Erro ao recusar a substituição.');
+    }
+  };
+
   const getLocationName = (locationId: string) => {
     if (!locationId) return 'Local não informado';
     const location = locations.find(loc => loc._id === locationId);
@@ -589,7 +610,7 @@ export default function App() {
                         onClick={() => setShowPendingRequests(!showPendingRequests)}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <span>🔔</span> Solicitações de Troca Pendentes ({substitutionRequests.filter(r => r.status === 'PENDING').length})
+                          <span>🔔</span> Solicitações de Substituições Pendentes ({substitutionRequests.filter(r => r.status === 'PENDING').length})
                         </div>
                         <span>{showPendingRequests ? '▲' : '▼'}</span>
                       </h3>
@@ -612,6 +633,31 @@ export default function App() {
                           ))}
                         </div>
                       )}
+                    </div>
+                  )}
+
+                  {substitutionRequests.filter(r => String(r.substituteUserId?._id || r.substituteUserId) === String(authUser?._id) && r.status === 'AWAITING_SUBSTITUTE').length > 0 && (
+                    <div style={{ margin: '16px 0', padding: 16, backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8 }}>
+                      <h3 style={{ margin: '0 0 12px 0', color: '#15803d', display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span>🙋‍♂️</span> Substituições Aguardando Sua Confirmação
+                      </h3>
+                      <div style={{ display: 'grid', gap: 8 }}>
+                        {substitutionRequests.filter(r => String(r.substituteUserId?._id || r.substituteUserId) === String(authUser?._id) && r.status === 'AWAITING_SUBSTITUTE').map(req => (
+                          <div key={req._id} style={{ background: '#fff', padding: 12, borderRadius: 6, border: '1px solid #dcfce7', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                            <div>
+                              <div style={{ fontWeight: 600 }}>{req.originalUserId?.name} pediu para ser substituído por você.</div>
+                              <div style={{ fontSize: 13, color: '#64748b' }}>
+                                Escala: {getLocationName(req.eventId?.locationId)} - {new Date(req.eventId?.date).toLocaleDateString('pt-BR')} às {req.eventId?.time?.start}
+                              </div>
+                              {isAdmin && req.reason && <div style={{ fontSize: 13, fontStyle: 'italic', marginTop: 4 }}>Motivo: "{req.reason}"</div>}
+                            </div>
+                            <div style={{ display: 'flex', gap: 8 }}>
+                              <button className="btn" style={{ background: '#10b981', borderColor: '#10b981' }} onClick={() => handleAcceptSubstitute(req._id)}>Aceitar</button>
+                              <button className="btn secondary" style={{ color: '#ef4444', borderColor: '#ef4444' }} onClick={() => handleRejectSubstitute(req._id)}>Recusar</button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
 
@@ -797,7 +843,7 @@ export default function App() {
                       authUser={authUser} 
                       users={users} 
                       existingRequest={substitutionRequests.find(r => 
-                        (r.status === 'PENDING' || r.status === 'OPEN') && 
+                        (r.status === 'PENDING' || r.status === 'OPEN' || r.status === 'AWAITING_SUBSTITUTE') && 
                         String(r.eventId?._id || r.eventId) === String(selectedEventForModal._id) && 
                         String(r.originalUserId?._id || r.originalUserId) === String(authUser._id)
                       )}
