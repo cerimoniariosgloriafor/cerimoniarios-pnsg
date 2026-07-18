@@ -333,11 +333,17 @@ export default function EventDetailsModal({ event, authUser, users, existingRequ
             ) : existingRequest ? (
               <div style={{ background: '#fffbeb', padding: 12, borderRadius: 8, border: '1px solid #fde68a', display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div>
-                  <div style={{ fontWeight: 600, color: '#b45309' }}>Solicitação de Substituição Pendente</div>
+                  <div style={{ fontWeight: 600, color: '#b45309' }}>
+                    {existingRequest.status === 'AWAITING_SUBSTITUTE' 
+                        ? 'Aguardando Aprovação do Substituto' 
+                        : 'Solicitação de Substituição Pendente'}
+                  </div>
                   <div style={{ fontSize: 13, color: '#92400e', marginTop: 4 }}>
-                    {existingRequest.substituteUserId 
-                      ? `Você solicitou troca direta com ${existingRequest.substituteUserId.name || 'outro irmão'}. Aguardando aprovação.` 
-                      : 'Você solicitou ajuda para esta escala. Aguardando voluntário ou aprovação.'}
+                    {existingRequest.status === 'AWAITING_SUBSTITUTE'
+                      ? `Você solicitou substituição com ${existingRequest.substituteUserId.name || 'outro cerimoniário'}. Aguardando aprovação dele.`
+                      : existingRequest.status === 'PENDING' && existingRequest.substituteUserId
+                        ? `${existingRequest.substituteUserId.name || 'O outro cerimoniário'} aceitou a substituição. Aguardando aprovação dos coordenadores.`
+                        : 'Você solicitou ajuda para esta escala. Aguardando voluntário ou aprovação dos coordenadores.'}
                   </div>
                 </div>
                 <button className="btn secondary" style={{ width: '100%', justifyContent: 'center', color: '#ef4444', borderColor: '#ef4444' }} onClick={handleCancelRequest} disabled={loading}>
@@ -350,7 +356,7 @@ export default function EventDetailsModal({ event, authUser, users, existingRequ
                   {locLoading ? 'Verificando localização...' : 'Fazer Check-In'}
                 </button>
                 <button className="btn" style={{ width: '100%', justifyContent: 'center', background: '#f59e0b', borderColor: '#f59e0b', color: '#fff' }} onClick={() => setShowForm(true)} disabled={locLoading || isEventPassed()}>
-                  Não poderei ir / Solicitar Troca
+                  Não poderei ir / Solicitar Substituição
                 </button>
               </>
             )}
@@ -360,11 +366,11 @@ export default function EventDetailsModal({ event, authUser, users, existingRequ
             <h3 style={{ fontSize: 16, margin: '0 0 12px 0', color: '#b45309' }}>Solicitar Substituição</h3>
             
             <div style={{ marginBottom: 12 }}>
-              <label style={{ display: 'block', marginBottom: 4, fontWeight: 500 }}>Tipo de Troca</label>
+              <label style={{ display: 'block', marginBottom: 4, fontWeight: 500 }}>Tipo de Substituição</label>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <input type="radio" name="type" checked={type === 'A'} onChange={() => setType('A')} />
-                  Já combinei com outro irmão (Troca Direta)
+                  Já combinei com outro cerimoniário (Substituição Direta)
                 </label>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <input type="radio" name="type" checked={type === 'B'} onChange={() => setType('B')} />

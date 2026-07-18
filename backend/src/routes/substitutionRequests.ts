@@ -16,7 +16,7 @@ router.get('/', async (req, res) => {
       query.eventId = eventId;
     }
     if (!includeAll) {
-      query.status = { $in: ['PENDING', 'OPEN'] };
+      query.status = { $in: ['PENDING', 'OPEN', 'AWAITING_SUBSTITUTE'] };
     }
 
     const requests = await SubstitutionRequest.find(query)
@@ -33,7 +33,7 @@ router.get('/', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { eventId, originalUserId, substituteUserId, reason } = req.body;
-    const status = substituteUserId ? 'PENDING' : 'OPEN';
+    const status = substituteUserId ? 'AWAITING_SUBSTITUTE' : 'OPEN';
     const request = new SubstitutionRequest({
       eventId,
       originalUserId,
@@ -59,6 +59,56 @@ router.post('/:id/volunteer', async (req, res) => {
     request.substituteUserId = substituteUserId;
     request.status = 'PENDING';
     await request.save();
+    res.json(request);
+  } catch (err: any) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Substitute accepts a direct request
+router.post('/:id/accept-substitute', async (req, res) => {
+  try {
+    const request = await SubstitutionRequest.findById(req.params.id);
+    if (!request) return res.status(404).json({ error: 'Not found' });
+    if (request.status !== 'AWAITING_SUBSTITUTE') return res.status(400).json({ error: 'Request is not awaiting substitute confirmation' });
+
+    // TODO: check if logged in user is the substituteUserId
+
+    request.status = 'PENDING';
+    await request.save();
+
+    const originalUser = await User.findById(request.originalUserId);
+    if (originalUser) {
+      const substituteUser = await User.findById(request.substituteUserId);
+      (originalUser as any).notifications.push({ message: `${substituteUser?.name || 'O outro cerimoniário'} aceitou a substituição. Aguardando aprovação dos coordenadores.` });
+      await originalUser.save();
+    }
+
+    res.json(request);
+  } catch (err: any) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Substitute rejects a direct request
+router.post('/:id/reject-substitute', async (req, res) => {
+  try {
+    const request = await SubstitutionRequest.findById(req.params.id);
+    if (!request) return res.status(404).json({ error: 'Not found' });
+    if (request.status !== 'AWAITING_SUBSTITUTE') return res.status(400).json({ error: 'Request is not awaiting substitute confirmation' });
+
+    // TODO: check if logged in user is the substituteUserId
+
+    request.status = 'REJECTED';
+    await request.save();
+    
+    const originalUser = await User.findById(request.originalUserId);
+    if (originalUser) {
+      const substituteUser = await User.findById(request.substituteUserId);
+      (originalUser as any).notifications.push({ message: `${substituteUser?.name || 'O outro cerimoniário'} recusou a substituição.` });
+      await originalUser.save();
+    }
+    
     res.json(request);
   } catch (err: any) {
     res.status(400).json({ error: err.message });
@@ -102,7 +152,7 @@ router.post('/:id/approve', async (req, res) => {
     if (request.substituteUserId) {
       const substituteUser = await User.findById(request.substituteUserId);
       if (substituteUser) {
-        (substituteUser as any).notifications.push({ message: `Sua substituição para o irmão ${originalUser?.name || ''} foi APROVADA.` });
+        (substituteUser as any).notifications.push({ message: `Sua substituição para o ${originalUser?.name || ''} foi APROVADA.` });
         await substituteUser.save();
       }
     }
@@ -134,7 +184,7 @@ router.post('/:id/reject', async (req, res) => {
     if (request.substituteUserId) {
       const substituteUser = await User.findById(request.substituteUserId);
       if (substituteUser) {
-        (substituteUser as any).notifications.push({ message: `Sua substituição para o irmão ${originalUser?.name || ''} foi RECUSADA.` });
+        (substituteUser as any).notifications.push({ message: `Sua substituição para o ${originalUser?.name || ''} foi RECUSADA.` });
         await substituteUser.save();
       }
     }
