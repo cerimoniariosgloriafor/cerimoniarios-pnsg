@@ -411,6 +411,12 @@ export default function App() {
     }
   };
 
+  const getLocationName = (locationId: string) => {
+    if (!locationId) return 'Local não informado';
+    const location = locations.find(loc => loc._id === locationId);
+    return location ? location.name : 'Local não informado';
+  };
+
   // if showing the login page and not authenticated, render only the login card
   if (page === 'login' && !authLoading && !authUser) {
     return (
@@ -594,7 +600,7 @@ export default function App() {
                               <div>
                                 <div style={{ fontWeight: 600 }}>{req.originalUserId?.name} quer ser substituído por {req.substituteUserId?.name}</div>
                                 <div style={{ fontSize: 13, color: '#64748b' }}>
-                                  Escala: {req.eventId?.title || req.eventId?.locationId?.name} - {new Date(req.eventId?.date).toLocaleDateString('pt-BR')} às {req.eventId?.time?.start}
+                                  Escala: {getLocationName(req.eventId?.locationId)} - {new Date(req.eventId?.date).toLocaleDateString('pt-BR')} às {req.eventId?.time?.start}
                                 </div>
                                 {isAdmin && req.reason && <div style={{ fontSize: 13, fontStyle: 'italic', marginTop: 4 }}>"{req.reason}"</div>}
                               </div>
@@ -622,7 +628,7 @@ export default function App() {
                               <div>
                                 <div style={{ fontWeight: 600 }}>{req.originalUserId?.name} precisa de um substituto</div>
                                 <div style={{ fontSize: 13, color: '#64748b' }}>
-                                  Escala: {req.eventId?.title || req.eventId?.locationId?.name} - {new Date(req.eventId?.date).toLocaleDateString('pt-BR')} às {req.eventId?.time?.start}
+                                  Escala: {getLocationName(req.eventId?.locationId)} - {new Date(req.eventId?.date).toLocaleDateString('pt-BR')} às {req.eventId?.time?.start}
                                 </div>
                                 {isAdmin && req.reason && <div style={{ fontSize: 13, fontStyle: 'italic', marginTop: 4 }}>"{req.reason}"</div>}
                               </div>
