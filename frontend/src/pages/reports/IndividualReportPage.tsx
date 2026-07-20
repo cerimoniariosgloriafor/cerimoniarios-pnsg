@@ -149,6 +149,20 @@ function IndividualReportModal({
   const [editingOccurrenceIndex, setEditingOccurrenceIndex] = useState<number | null>(null);
   const [editedOccurrenceNote, setEditedOccurrenceNote] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [isCheckingIn, setIsCheckingIn] = useState(false);
+
+  const handleManualCheckIn = async (userId: string) => {
+    try {
+      setIsCheckingIn(true);
+      const res = await axios.post(`/agenda-events/${event._id}/manual-check-in`, { userId });
+      onUpdateEvent(res.data);
+    } catch (err) {
+      console.error('failed to manual check-in', err);
+      alert('Erro ao fazer check-in manual.');
+    } finally {
+      setIsCheckingIn(false);
+    }
+  };
 
   const currentUsers = useMemo(() => [...(event.users || [])].sort(sortByRoles), [event.users]);
   const approvedRequests = useMemo(
@@ -276,6 +290,8 @@ function IndividualReportModal({
               ) : checkedInUsers.map((u: any) => {
                 const userId = String(u.userId?._id || u.userId || '');
                 const roles = sortRolesList(u.roles || []).join(', ') || 'Sem função';
+                const checkInByLabel = u.checkInBy === 'admin' ? '(pelo Admin)' : '';
+
                 return (
                   <div key={`${userId}-${(u.roles || []).join(',')}`} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: 12, border: '1px solid #e2e8f0', borderRadius: 12, background: '#f8fafc', flexWrap: 'wrap' }}>
                     <div>
@@ -287,7 +303,7 @@ function IndividualReportModal({
                         {u.checkedInAt ? 'Check-in' : 'Sem check-in'}
                       </div>
                       <div style={{ color: '#64748b', fontSize: 13, marginTop: 4 }}>
-                        {u.checkedInAt ? formatTime(u.checkedInAt) : '—'}
+                        {u.checkedInAt ? `${formatTime(u.checkedInAt)} ${checkInByLabel}`.trim() : '—'}
                       </div>
                     </div>
                   </div>
@@ -320,6 +336,14 @@ function IndividualReportModal({
                       <div style={{ fontWeight: 700, color: '#991b1b' }}>
                         {u.userId?.name || 'Desconhecido'} faltou
                       </div>
+                      <button
+                        className="btn"
+                        onClick={() => handleManualCheckIn(String(u.userId?._id || u.userId))}
+                        disabled={isCheckingIn}
+                        style={{ marginTop: 8, fontSize: 12, padding: '6px 10px' }}
+                      >
+                        {isCheckingIn ? 'Aguarde...' : 'Check-in manual'}
+                      </button>
                     </div>
                   ))}
                 </div>
