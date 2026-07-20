@@ -68,64 +68,65 @@ function sortByRoles(a: any, b: any) {
 }
 
 function buildWhatsAppText(event: any, substitutionRequests: any[]) {
-  const currentUsers = [...(event.users || [])].sort(sortByRoles);
-  const approvedRequests = (substitutionRequests || []).filter((req: any) => req.status === 'APPROVED');
-  const substitutionBySubstitute = new Map<string, any>();
-  const eventDateLabel = formatDateTime(event.date, false);
-  const eventTimeLabel = event.time?.start || '—';
+  // Define availableRoles based on roleRank function's order
+  const availableRoles = ['M.C.', 'C.A.', 'C.L.', 'C.D.'];
 
-  approvedRequests.forEach((req: any) => {
-    const substituteId = String(req.substituteUserId?._id || req.substituteUserId || '');
-    if (substituteId) substitutionBySubstitute.set(substituteId, req);
+  const evDate = new Date(event.date);
+  const dateFormatted = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(evDate);
+  
+  const dayFormatter = new Intl.DateTimeFormat('pt-BR', { weekday: 'long' });
+  const capitalizedWeekday = dayFormatter.format(evDate).replace(/^\w/, c => c.toUpperCase());
+  
+  let text = `${dateFormatted}\n`;
+  text += `${capitalizedWeekday}\n`;
+  text += `${event.time?.start || ''}\n`;
+  text += `${event.locationId?.name || ''}\n`;
+  text += `${event.title || 'Missa'}\n`;
+  text += `${event.priestName || ''}\n\n`;
+  
+  const servosWithRoles = (event.users || []).filter((u: any) => u.roles && u.roles.length > 0)
+    .sort((a: any, b: any) => {
+      const getHighestRank = (roles: string[]) => {
+        if (!roles || roles.length === 0) return 999;
+        return Math.min(...roles.map(r => {
+          const idx = availableRoles.indexOf(r);
+          return idx === -1 ? 999 : idx;
+        }));
+      };
+      const rankA = getHighestRank(a.roles);
+      const rankB = getHighestRank(b.roles);
+      if (rankA !== rankB) return rankA - rankB;
+      return (a.userId?.name || '').localeCompare(b.userId?.name || '');
+    });
+
+  servosWithRoles.forEach(u => {
+    if (u.roles && u.roles.length > 0) {
+      const sortedRoles = [...u.roles].sort((a, b) => {
+        const aIdx = availableRoles.indexOf(a);
+        const bIdx = availableRoles.indexOf(b);
+        return aIdx - bIdx;
+      });
+      text += `${sortedRoles[0]}: ${u.userId?.name || 'Desconhecido'}\n`;
+    }
   });
 
-  let text = `*${event.title || 'Missa'}*\n`;
-  text += `*Local:* ${event.locationId?.name || 'Não informado'}\n`;
-  text += `*Padre:* ${event.priestName || 'Não informado'}\n`;
-  text += `*Data:* ${eventDateLabel}${eventTimeLabel !== '—' ? ` às ${eventTimeLabel}` : ''}\n\n`;
+  text += `Coroinhas: ${event.acolyteCount || 0}\n\n`;
 
-  text += `*Cerimoniários:*\n`;
-  currentUsers
-    .filter((u: any) => !!u.checkedInAt)
-    .forEach((u: any) => {
-      const roles = sortRolesList(u.roles || []).join(', ') || 'Sem função';
-      text += `• ${u.userId?.name || 'Desconhecido'} - ${roles} | Check-in ${formatTime(u.checkedInAt)}\n`;
-    });
+  const occsWithNotes = (event.occurrences || []).filter((o: any) => o.note && o.note.trim() !== '');
+  if (occsWithNotes.length > 0) {
+    occsWithNotes.forEach(o => {
+      const formattedNote = String(o.note)
+        .split('\n')
+        .filter((line: string) => line.trim() !== '')
+        .map((line: string) => `- ${line.trim()}`)
+        .join('\n');
 
-  const absentUsers = currentUsers.filter((u: any) => !u.checkedInAt);
-  if (absentUsers.length > 0 || approvedRequests.length > 0) {
-    text += `\n*Faltas e substituições:*\n`;
-    approvedRequests.forEach((req: any) => {
-      text += `• ${req.originalUserId?.name || 'Desconhecido'} foi substituído por ${req.substituteUserId?.name || 'Sem substituto'}\n`;
+      text += `${formattedNote}\n`;
     });
-    absentUsers.forEach((u: any) => {
-      const userId = String(u.userId?._id || u.userId || '');
-      if (!substitutionBySubstitute.has(userId)) {
-        text += `• ${u.userId?.name || 'Desconhecido'} faltou\n`;
-      }
-    });
+    text += `\n`; 
   }
 
-  text += `\n*Coroinhas:* ${event.acolyteCount || 0}\n`;
-
-  const occs = (event.occurrences || []).filter((o: any) => String(o.note || '').trim() !== '');
-  if (occs.length > 0) {
-    text += `\n*Intercorrências:*\n`;
-    [...occs]
-      .sort((a: any, b: any) => {
-        const nameA = a.userId?.name || '';
-        const nameB = b.userId?.name || '';
-        return nameA.localeCompare(nameB);
-      })
-      .forEach((o: any) => {
-        const formattedNote = String(o.note)
-          .split('\n')
-          .filter((line: string) => line.trim() !== '')
-          .map((line: string) => `  ${line.trim()}`)
-          .join('\n');
-        text += `${formattedNote}\n`;
-      });
-  }
+  text += `Nossa Senhora da Glória, Rogai por nós!`;
 
   return text;
 }
