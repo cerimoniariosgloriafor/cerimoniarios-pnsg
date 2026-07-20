@@ -145,13 +145,18 @@ export default function EventReportPage({ id, onBack }: EventReportPageProps) {
 
   const exportToWhatsApp = () => {
     const evDate = new Date(event.date);
+    const dateFormatted = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(evDate);
+    
     const dayFormatter = new Intl.DateTimeFormat('pt-BR', { weekday: 'long' });
     const capitalizedWeekday = dayFormatter.format(evDate).replace(/^\w/, c => c.toUpperCase());
-    const dateFormatted = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' }).format(evDate);
     
-    let text = `*${event.title || 'Missa'} - ${event.time?.start || ''} - ${event.locationId?.name || ''} - ${event.priestName || ''}*\n\n`;
+    let text = `${dateFormatted}\n`;
+    text += `${capitalizedWeekday}\n`;
+    text += `${event.time?.start || ''}\n`;
+    text += `${event.locationId?.name || ''}\n`;
+    text += `${event.title || 'Missa'}\n`;
+    text += `${event.priestName || ''}\n\n`;
     
-    text += `*Cerimoniários:*\n`;
     const servosWithRoles = eventUsers.filter((u: any) => u.roles && u.roles.length > 0)
       .sort((a: any, b: any) => {
         const getHighestRank = (roles: string[]) => {
@@ -168,34 +173,21 @@ export default function EventReportPage({ id, onBack }: EventReportPageProps) {
       });
 
     servosWithRoles.forEach(u => {
-      let sortedRoles = [...u.roles].sort((a, b) => {
-        const aIdx = availableRoles.indexOf(a);
-        const bIdx = availableRoles.indexOf(b);
-        if (aIdx === -1 && bIdx === -1) return a.localeCompare(b);
-        if (aIdx === -1) return 1;
-        if (bIdx === -1) return -1;
-        return aIdx - bIdx;
-      });
-      text += `• *${sortedRoles.join(', ')} - ${u.userId?.name || 'Desconhecido'}*\n`;
+      if (u.roles && u.roles.length > 0) {
+        const sortedRoles = [...u.roles].sort((a, b) => {
+          const aIdx = availableRoles.indexOf(a);
+          const bIdx = availableRoles.indexOf(b);
+          return aIdx - bIdx;
+        });
+        text += `${sortedRoles[0]}: ${u.userId?.name || 'Desconhecido'}\n`;
+      }
     });
 
-    const faltosos = eventUsers.filter((u: any) => !u.roles || u.roles.length === 0);
-    if (faltosos.length > 0) {
-      text += `\n*Faltas:*\n`;
-      faltosos.forEach(u => {
-        text += `- ${u.userId?.name || 'Desconhecido'}\n`;
-      });
-    }
-
-    text += `\n*Coroinhas - ${acolyteCount}*\n`;
+    text += `Coroinhas: ${acolyteCount}\n\n`;
 
     const occsWithNotes = occurrences.filter(o => o.note && o.note.trim() !== '');
     if (occsWithNotes.length > 0) {
-      text += `\n*Intercorrências:*\n`;
       occsWithNotes.forEach(o => {
-        const eventUser = eventUsers.find((eu: any) => String(eu.userId?._id || eu.userId) === String(o.userId?._id || o.userId));
-        const uName = eventUser?.userId?.name || o.userId?.name || 'Desconhecido';
-        
         const formattedNote = o.note
           .split('\n')
           .filter((line: string) => line.trim() !== '')
@@ -204,14 +196,14 @@ export default function EventReportPage({ id, onBack }: EventReportPageProps) {
 
         text += `${formattedNote}\n`;
       });
+      text += `\n`; 
     }
 
-    text += `\n*Nossa Senhora da Glória, Rogai por nós!*`;
+    text += `Nossa Senhora da Glória, Rogai por nós!`;
 
     const encoded = encodeURIComponent(text);
     window.open(`whatsapp://send?text=${encoded}`, '_blank');
     
-    // Salva o relatório no banco após exportar
     handleSave(true);
   };
 
