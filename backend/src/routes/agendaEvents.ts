@@ -192,6 +192,7 @@ router.post('/:id/checkin', async (req, res) => {
     if (!userEntry) return res.status(400).json({ error: 'user not assigned to this event' });
 
     userEntry.checkedInAt = new Date();
+    userEntry.checkInBy = 'user';
     await event.save();
     
     res.json({ success: true, checkedInAt: userEntry.checkedInAt });
@@ -214,6 +215,7 @@ router.post('/:id/cancel-checkin', async (req, res) => {
     if (!userEntry) return res.status(400).json({ error: 'user not assigned to this event' });
 
     userEntry.checkedInAt = null;
+    userEntry.checkInBy = undefined;
     await event.save();
     
     res.json({ success: true, checkedInAt: null });
@@ -259,6 +261,33 @@ router.put('/:id/checklist-status', async (req, res) => {
   } catch (err) {
     console.error('Failed to update checklist item status', err);
     res.status(500).json({ error: 'Failed to update checklist item status', details: (err as any)?.message });
+  }
+});
+
+router.post('/:id/manual-check-in', async (req, res) => {
+  try {
+    const AgendaEvent = require('../models/agendaEvent').default;
+    const { userId } = req.body;
+    if (!userId) return res.status(400).json({ error: 'userId required' });
+
+    const event = await AgendaEvent.findById(req.params.id);
+    if (!event) return res.status(404).json({ error: 'event not found' });
+
+    const userEntry = event.users.find((u: any) => String(u.userId) === String(userId));
+    if (!userEntry) return res.status(400).json({ error: 'user not assigned to this event' });
+
+    userEntry.checkedInAt = new Date();
+    userEntry.checkInBy = 'admin';
+    await event.save();
+    
+    const populated = await AgendaEvent.findById(event._id)
+      .populate('locationId')
+      .populate('users.userId')
+      .populate('occurrences.userId');
+    res.json(populated || event);
+  } catch (err) {
+    console.error('agendaEvents manual checkin error', err);
+    res.status(500).json({ error: 'failed to manual checkin', details: (err as any)?.message });
   }
 });
 

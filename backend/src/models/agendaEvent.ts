@@ -3,7 +3,8 @@ import { Schema, model, Types, models } from 'mongoose';
 const AgendaEventUserSchema = new Schema({
   userId: { type: Types.ObjectId, ref: 'User' },
   roles: [{ type: String }], // e.g. 'M.C', 'C.A', 'C.L'
-  checkedInAt: { type: Date }
+  checkedInAt: { type: Date },
+  checkInBy: { type: String, enum: ['user', 'admin'] }
 }, { _id: false });
 
 const ChecklistItemSchema = new Schema({
