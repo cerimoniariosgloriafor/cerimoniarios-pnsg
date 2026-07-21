@@ -669,6 +669,8 @@ export default function App() {
                       <div style={{ display: 'grid', gap: 8 }}>
                         {substitutionRequests.filter(r => r.status === 'OPEN').map(req => {
                           const isMine = String(req.originalUserId?._id || req.originalUserId) === String(authUser._id);
+                          const assignedUserIds = (req.eventId?.users || []).map((u: any) => String(u.userId?._id || u.userId));
+                          const alreadyAssigned = assignedUserIds.includes(String(authUser._id));
                           return (
                             <div key={req._id} style={{ background: '#fff', padding: 12, borderRadius: 6, border: '1px solid #dbeafe', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                               <div>
@@ -678,10 +680,11 @@ export default function App() {
                                 </div>
                                 {isAdmin && req.reason && <div style={{ fontSize: 13, fontStyle: 'italic', marginTop: 4 }}>"{req.reason}"</div>}
                               </div>
-                              {!isMine && (
+                              {!isMine && !alreadyAssigned && (
                                 <button className="btn" style={{ background: '#3b82f6', borderColor: '#3b82f6' }} onClick={() => handleTakeShift(req._id)}>Eu posso assumir</button>
                               )}
                               {isMine && <span style={{ fontSize: 13, color: '#64748b', fontWeight: 500 }}>Aguardando voluntário...</span>}
+                              {!isMine && alreadyAssigned && <span style={{ fontSize: 13, color: '#64748b', fontWeight: 500 }}>Você já está escalado nesta missa.</span>}
                             </div>
                           );
                         })}
