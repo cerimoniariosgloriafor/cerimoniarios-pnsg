@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 
 interface EventDetailsModalProps {
@@ -12,12 +12,41 @@ interface EventDetailsModalProps {
 
 export default function EventDetailsModal({ event, authUser, users, existingRequest, onClose, onRequestSubmitted }: EventDetailsModalProps) {
   const [showForm, setShowForm] = useState(false);
-  const [type, setType] = useState<'A' | 'B'>('A');
+  const [type, setType] = useState<'A' | 'B' | 'C'>('A');
   const [substituteId, setSubstituteId] = useState('');
+  const [swapUserId, setSwapUserId] = useState('');
+  const [swapEventId, setSwapEventId] = useState('');
+  const [futureEvents, setFutureEvents] = useState<any[]>([]);
+  const [futureEventsLoading, setFutureEventsLoading] = useState(false);
+  const [swapEventsLoaded, setSwapEventsLoaded] = useState(false);
+  const [swapError, setSwapError] = useState('');
   const [reason, setReason] = useState('');
   const [reasonError, setReasonError] = useState(false);
   const [loading, setLoading] = useState(false);
   const [locLoading, setLocLoading] = useState(false);
+  const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+
+  const formatLocalDateKey = (date: Date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  };
+
+  const parseEventStart = (ev: any) => {
+    if (!ev?.date) return null;
+    const start = new Date(ev.date);
+    const [hour, minute] = String(ev.time?.start || '00:00').split(':').map((part: string) => parseInt(part, 10));
+    start.setHours(Number.isFinite(hour) ? hour : 0, Number.isFinite(minute) ? minute : 0, 0, 0);
+    return start;
+  };
+
+  const formatSwapEventLabel = (ev: any) => {
+    const dateLabel = ev?.date ? new Date(ev.date).toLocaleDateString('pt-BR') : 'Data não informada';
+    const locationLabel = ev?.locationId?.name || 'Local não informado';
+    const timeLabel = ev?.time?.start || '—';
+    return `${dateLabel} - ${timeLabel} - ${locationLabel}`;
+  };
 
   const isActionable = () => {
     if (!event || !event.date) return false;
@@ -35,6 +64,93 @@ export default function EventDetailsModal({ event, authUser, users, existingRequ
     return diffInDays < 2;
   };
 
+  useEffect(() => {
+    if (type !== 'C' || swapEventsLoaded || futureEventsLoading) return;
+
+    const loadFutureEvents = async () => {
+      setFutureEventsLoading(true);
+      try {
+        const res = await axios.get('/agenda-events', { params: { startDate: formatLocalDateKey(new Date()) } });
+        setFutureEvents(Array.isArray(res.data) ? res.data : []);
+      } catch (err) {
+        console.error('Failed to load future events for swap', err);
+        setFutureEvents([]);
+      } finally {
+        setFutureEventsLoading(false);
+        setSwapEventsLoaded(true);
+      }
+    };
+
+    loadFutureEvents();
+  }, [type, swapEventsLoaded, futureEventsLoading]);
+
+  useEffect(() => {
+    if (type !== 'C') {
+      setSwapError('');
+      return;
+    }
+
+    if (!swapUserId || !swapEventId) {
+      setSwapError('');
+      return;
+    }
+
+    const targetEvent = futureEvents.find(ev => String(ev._id) === String(swapEventId));
+    if (!targetEvent) {
+      setSwapError('Selecione uma escala válida para troca.');
+      return;
+    }
+
+    const targetStart = parseEventStart(targetEvent);
+    if (!targetStart) {
+      setSwapError('Não foi possível calcular o horário da escala escolhida.');
+      return;
+    }
+
+    const sourceStart = parseEventStart(event);
+    if (!sourceStart) {
+      setSwapError('Não foi possível calcular o horário da sua escala.');
+      return;
+    }
+
+    const issues: string[] = [];
+    const requesterConflict = futureEvents.some((other: any) => {
+      if (String(other._id) === String(event._id) || String(other._id) === String(targetEvent._id)) return false;
+      const hasRequester = (other.users || []).some((u: any) => String(u.userId?._id || u.userId) === String(authUser._id));
+      if (!hasRequester) return false;
+      const otherStart = parseEventStart(other);
+      if (!otherStart) return false;
+      return Math.abs(otherStart.getTime() - targetStart.getTime()) < TWO_HOURS_MS;
+    });
+    const substituteConflict = futureEvents.some((other: any) => {
+      if (String(other._id) === String(event._id) || String(other._id) === String(targetEvent._id)) return false;
+      const hasSubstitute = (other.users || []).some((u: any) => String(u.userId?._id || u.userId) === String(swapUserId));
+      if (!hasSubstitute) return false;
+      const otherStart = parseEventStart(other);
+      if (!otherStart) return false;
+      return Math.abs(otherStart.getTime() - sourceStart.getTime()) < TWO_HOURS_MS;
+    });
+
+    if (requesterConflict) issues.push('Seu novo horário ficaria a menos de 2 horas de outra escala sua.');
+    if (substituteConflict) issues.push('O outro cerimoniário ficaria a menos de 2 horas de outra escala dele.');
+
+    setSwapError(issues.join(' '));
+  }, [type, swapUserId, swapEventId, futureEvents, event, authUser]);
+
+  useEffect(() => {
+    if (type !== 'C') {
+      setSwapUserId('');
+      setSwapEventId('');
+      setSwapError('');
+    }
+  }, [type]);
+
+  useEffect(() => {
+    if (!swapUserId) {
+      setSwapEventId('');
+    }
+  }, [swapUserId]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -43,23 +159,43 @@ export default function EventDetailsModal({ event, authUser, users, existingRequ
       return;
     }
 
+    if (type === 'C') {
+      if (!swapUserId) return alert('Selecione o cerimoniário da troca.');
+      if (!swapEventId) return alert('Selecione a escala de destino.');
+      if (swapError) return alert(swapError);
+    }
+
     setReasonError(false);
     setLoading(true);
     try {
-      await axios.post('/substitution-requests', {
+      const payload: any = {
         eventId: event._id,
         originalUserId: authUser._id,
-        substituteUserId: type === 'A' ? substituteId : null,
-        reason: reason.trim()
+        reason: reason.trim(),
+        requestType: type === 'A' ? 'DIRECT' : type === 'B' ? 'HELP' : 'SWAP',
+      };
+
+      if (type === 'A') {
+        payload.substituteUserId = substituteId;
+      } else if (type === 'C') {
+        payload.substituteUserId = swapUserId;
+        payload.targetEventId = swapEventId;
+      }
+
+      await axios.post('/substitution-requests', {
+        ...payload
       });
       alert('Solicitação enviada com sucesso!');
-      shareOnWhatsApp(type, event, authUser, substituteId, users);
+      shareOnWhatsApp(type, event, authUser, type === 'A' ? substituteId : swapUserId, users, futureEvents, swapEventId);
       onRequestSubmitted();
       onClose();
       window.location.reload();
     } catch (err) {
       console.error(err);
-      alert('Erro ao enviar solicitação.');
+      const errorMessage = axios.isAxiosError(err)
+        ? (err.response?.data?.error || err.message)
+        : 'Erro ao enviar solicitação.';
+      alert(errorMessage || 'Erro ao enviar solicitação.');
     } finally {
       setLoading(false);
     }
@@ -71,7 +207,7 @@ export default function EventDetailsModal({ event, authUser, users, existingRequ
     
     setLoading(true);
     try {
-      await axios.post(`/substitution-requests/${existingRequest._id}/reject`);
+      await axios.post(`/substitution-requests/${existingRequest._id}/cancel`, { userId: authUser._id });
       alert('Solicitação cancelada com sucesso!');
       onRequestSubmitted();
       onClose();
@@ -193,6 +329,61 @@ export default function EventDetailsModal({ event, authUser, users, existingRequ
 
   const myUser = (event.users || []).find((u: any) => String(u.userId?._id || u.userId) === String(authUser._id));
   const otherUsers = (event.users || []).filter((u: any) => String(u.userId?._id || u.userId) !== String(authUser._id));
+  const swapRequestActive = !!(existingRequest && existingRequest.requestType === 'SWAP' && existingRequest.status === 'PENDING');
+  const swapRequestIsRequester = !!(existingRequest && String(existingRequest.originalUserId?._id || existingRequest.originalUserId) === String(authUser._id));
+  const swapRequestIsSubstitute = !!(existingRequest && String(existingRequest.substituteUserId?._id || existingRequest.substituteUserId) === String(authUser._id));
+  const canCancelSwapRequest = swapRequestActive ? swapRequestIsRequester : true;
+  const swapCandidates = futureEvents
+    .filter((ev: any) => String(ev._id) !== String(event._id))
+    .reduce((acc: any[], ev: any) => {
+      (ev.users || []).forEach((u: any) => {
+        const userId = String(u.userId?._id || u.userId);
+        if (userId === String(authUser._id)) return;
+        if (acc.some(item => String(item._id) === userId)) return;
+        const userObj = users.find(x => String(x._id) === userId);
+        if (!userObj || userObj.archived) return;
+        acc.push(userObj);
+      });
+      return acc;
+    }, [])
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const swapEventsForUser = futureEvents
+    .filter((ev: any) => String(ev._id) !== String(event._id))
+    .filter((ev: any) => (ev.users || []).some((u: any) => String(u.userId?._id || u.userId) === String(swapUserId)))
+    .sort((a: any, b: any) => {
+      const aStart = parseEventStart(a)?.getTime() || 0;
+      const bStart = parseEventStart(b)?.getTime() || 0;
+      return aStart - bStart;
+    });
+
+  const getSwapEventIssue = (ev: any) => {
+    const sourceStart = parseEventStart(event);
+    const targetStart = parseEventStart(ev);
+    if (!sourceStart || !targetStart) return 'Não foi possível calcular o horário.';
+    const issues: string[] = [];
+    const requesterConflict = futureEvents.some((other: any) => {
+      if (String(other._id) === String(event._id) || String(other._id) === String(ev._id)) return false;
+      const hasRequester = (other.users || []).some((u: any) => String(u.userId?._id || u.userId) === String(authUser._id));
+      if (!hasRequester) return false;
+      const otherStart = parseEventStart(other);
+      if (!otherStart) return false;
+      return Math.abs(otherStart.getTime() - targetStart.getTime()) < TWO_HOURS_MS;
+    });
+    const substituteConflict = futureEvents.some((other: any) => {
+      if (String(other._id) === String(event._id) || String(other._id) === String(ev._id)) return false;
+      const hasSubstitute = (other.users || []).some((u: any) => String(u.userId?._id || u.userId) === String(swapUserId));
+      if (!hasSubstitute) return false;
+      const otherStart = parseEventStart(other);
+      if (!otherStart) return false;
+      return Math.abs(otherStart.getTime() - sourceStart.getTime()) < TWO_HOURS_MS;
+    });
+    if (requesterConflict) issues.push('Seu novo horário ficaria a menos de 2 horas de outra escala sua.');
+    if (substituteConflict) issues.push('O outro cerimoniário ficaria a menos de 2 horas de outra escala dele.');
+    return issues.join(' ');
+  };
+
+  const selectedSwapEvent = futureEvents.find(ev => String(ev._id) === String(swapEventId));
+  const selectedSwapIssue = selectedSwapEvent ? getSwapEventIssue(selectedSwapEvent) : '';
 
   const openMaps = () => {
     if (!addr) return alert('Endereço não disponível');
@@ -209,7 +400,15 @@ export default function EventDetailsModal({ event, authUser, users, existingRequ
     }
   };
 
-  const shareOnWhatsApp = (type: 'A' | 'B', event: any, authUser: any, substituteId: string, users: any[]) => {
+  const shareOnWhatsApp = (
+    type: 'A' | 'B' | 'C',
+    event: any,
+    authUser: any,
+    substituteId: string,
+    users: any[],
+    swapEvents: any[] = [],
+    swapEventId?: string,
+  ) => {
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);
         const weekdayOptions: Intl.DateTimeFormatOptions = { weekday: 'long' };
@@ -223,21 +422,50 @@ export default function EventDetailsModal({ event, authUser, users, existingRequ
         return `${weekday}, ${datePart}`;
     };
 
+    const formatSwapDate = (dateString: string) => {
+      const date = new Date(dateString);
+      const weekday = date.toLocaleDateString('pt-BR', { weekday: 'long' });
+      const weekdayCap = weekday.charAt(0).toUpperCase() + weekday.slice(1);
+      const datePart = date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      return `${weekdayCap} - ${datePart}`;
+    };
+
     const formattedDate = formatDate(event.date);
     const eventTime = event.time?.start || 'Horário não informado';
     const eventLocation = event.locationId?.name || event.locationAddress || 'Local não informado';
     const replacedUser = authUser.name;
 
-    let message = `*AVISO DE SUBSTITUIÇÃO*\n\n`;
+    let message = type === 'C' ? `*AVISO DE TROCA DE ESCALA*\n\n` : `*AVISO DE SUBSTITUIÇÃO*\n\n`;
     message += `📅 Dia: ${formattedDate}\n`;
     message += `⏰ Horário: ${eventTime}\n`;
     message += `📍 Local: ${eventLocation}\n\n`;
-    message += `👤 Substituído: ${replacedUser}\n`;
+    message += type === 'C'
+      ? `👤 Solicitante: ${replacedUser}\n`
+      : `👤 Substituído: ${replacedUser}\n`;
 
     if (type === 'A') {
         const substituteUser = users.find(u => String(u._id) === String(substituteId));
         message += `👤 Substituto: ${substituteUser?.name || 'Não informado'}\n\n`;
         message += `Pode confirmar se está ok pra você?\n\n{MARQUE OS COORDENADORES AQUI}\n\nObrigado! 🙏`;
+    } else if (type === 'C') {
+        const swapUser = users.find(u => String(u._id) === String(substituteId));
+        const swapEvent = swapEvents.find(ev => String(ev._id) === String(swapEventId));
+        const swapEventDate = swapEvent?.date ? formatSwapDate(swapEvent.date) : 'Não informado';
+        const swapEventTime = swapEvent?.time?.start || '—';
+        const swapEventLocation = swapEvent?.locationId?.name || 'Local não informado';
+
+        message = `*AVISO DE TROCA*\n\n`;
+        message += `📅 *Dia:* ${formattedDate}\n`;
+        message += `⏰ *Horário:* ${eventTime}\n`;
+        message += `📍 *Local:* ${eventLocation}\n\n`;
+        message += `👤 *Substituído:* ${replacedUser}\n`;
+        message += `👤 *Substituto:* ${swapUser?.name || 'Não informado'}\n\n\n`;
+        message += `📅 *Dia:* ${swapEventDate}\n`;
+        message += `⏰ *Horário:* ${swapEventTime}\n`;
+        message += `📍 *Local:* ${swapEventLocation}\n\n`;
+        message += `👤 *Substituído:* ${swapUser?.name || 'Não informado'}\n`;
+        message += `👤 *Substituto:* ${replacedUser}\n\n`;
+        message += `Pode confirmar se topa essa troca?\n\n{MARQUE OS COORDENADORES AQUI}\n\nObrigado! 🙏`;
     } else {
         message += `\nPRECISO DE AJUDA PARA ESTA ESCALA.\n\n`;
         message += `Por favor, entre em contato se puder ajudar.\n\nObrigado! 🙏`;
@@ -293,7 +521,36 @@ export default function EventDetailsModal({ event, authUser, users, existingRequ
             <button className="btn" style={{ width: '100%', justifyContent: 'center' }} onClick={openMaps}>
               Ver no Mapa
             </button>
-            
+
+            {swapRequestActive && (
+              <div style={{ background: '#f5f3ff', padding: 12, borderRadius: 8, border: '1px solid #ddd6fe', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ fontWeight: 600, color: '#6d28d9' }}>
+                  {existingRequest.status === 'AWAITING_SUBSTITUTE'
+                    ? (swapRequestIsRequester
+                      ? 'Aguardando a confirmação da troca pelo outro cerimoniário'
+                      : 'Aguardando sua confirmação da troca')
+                    : 'Troca de escala aguardando aprovação dos coordenadores'}
+                </div>
+                <div style={{ fontSize: 13, color: '#5b21b6' }}>
+                  {swapRequestIsRequester
+                    ? `Você pediu troca com ${existingRequest.substituteUserId?.name || 'outro cerimoniário'}.`
+                    : swapRequestIsSubstitute
+                      ? `Você aceitou a troca com ${existingRequest.originalUserId?.name || 'outro cerimoniário'}.`
+                      : 'Essa troca já está em andamento.'}
+                </div>
+                {existingRequest.targetEventId && (
+                  <div style={{ fontSize: 13, color: '#5b21b6' }}>
+                    Troca com: {formatSwapEventLabel(existingRequest.targetEventId)}
+                  </div>
+                )}
+                {canCancelSwapRequest && (
+                  <button className="btn secondary" style={{ width: '100%', justifyContent: 'center', color: '#ef4444', borderColor: '#ef4444' }} onClick={handleCancelRequest} disabled={loading}>
+                    {loading ? 'Cancelando...' : 'Cancelar Solicitação'}
+                  </button>
+                )}
+              </div>
+            )}
+
             {myUser?.checkedInAt && (
               <>
                 <button className="btn" style={{ width: '100%', justifyContent: 'center', background: '#178b57ff', borderColor: '#178b57ff', color: '#fff'  }} onClick={() => {
@@ -313,7 +570,7 @@ export default function EventDetailsModal({ event, authUser, users, existingRequ
               </>
             )}
 
-            {myUser?.checkedInAt ? (
+            {swapRequestActive ? null : myUser?.checkedInAt ? (
               <div style={{ background: '#ecfdf5', padding: 12, borderRadius: 8, border: '1px solid #a7f3d0', display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div>
@@ -334,17 +591,32 @@ export default function EventDetailsModal({ event, authUser, users, existingRequ
               <div style={{ background: '#fffbeb', padding: 12, borderRadius: 8, border: '1px solid #fde68a', display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div>
                   <div style={{ fontWeight: 600, color: '#b45309' }}>
-                    {existingRequest.status === 'AWAITING_SUBSTITUTE' 
-                        ? 'Aguardando Aprovação do Substituto' 
+                    {existingRequest.requestType === 'SWAP'
+                      ? existingRequest.status === 'AWAITING_SUBSTITUTE'
+                        ? 'Aguardando Aprovação da Troca'
+                        : 'Troca de Escala Pendente'
+                      : existingRequest.status === 'AWAITING_SUBSTITUTE'
+                        ? 'Aguardando Aprovação do Substituto'
                         : 'Solicitação de Substituição Pendente'}
                   </div>
                   <div style={{ fontSize: 13, color: '#92400e', marginTop: 4 }}>
-                    {existingRequest.status === 'AWAITING_SUBSTITUTE'
-                      ? `Você solicitou substituição com ${existingRequest.substituteUserId.name || 'outro cerimoniário'}. Aguardando aprovação dele.`
-                      : existingRequest.status === 'PENDING' && existingRequest.substituteUserId
-                        ? `${existingRequest.substituteUserId.name || 'O outro cerimoniário'} aceitou a substituição. Aguardando aprovação dos coordenadores.`
-                        : 'Você solicitou ajuda para esta escala. Aguardando voluntário ou aprovação dos coordenadores.'}
+                    {existingRequest.requestType === 'SWAP'
+                      ? existingRequest.status === 'AWAITING_SUBSTITUTE'
+                        ? `Você solicitou troca com ${existingRequest.substituteUserId?.name || 'outro cerimoniário'}. Aguardando a confirmação dele.`
+                        : existingRequest.status === 'PENDING' && existingRequest.substituteUserId
+                          ? `${existingRequest.substituteUserId.name || 'O outro cerimoniário'} aceitou a troca. Aguardando aprovação dos coordenadores.`
+                          : `Você solicitou troca de escala com ${existingRequest.substituteUserId?.name || 'outro cerimoniário'}.`
+                      : existingRequest.status === 'AWAITING_SUBSTITUTE'
+                        ? `Você solicitou substituição com ${existingRequest.substituteUserId.name || 'outro cerimoniário'}. Aguardando aprovação dele.`
+                        : existingRequest.status === 'PENDING' && existingRequest.substituteUserId
+                          ? `${existingRequest.substituteUserId.name || 'O outro cerimoniário'} aceitou a substituição. Aguardando aprovação dos coordenadores.`
+                          : 'Você solicitou ajuda para esta escala. Aguardando voluntário ou aprovação dos coordenadores.'}
                   </div>
+                  {existingRequest.requestType === 'SWAP' && existingRequest.targetEventId && (
+                    <div style={{ fontSize: 13, color: '#92400e', marginTop: 6 }}>
+                      Troca com: {formatSwapEventLabel(existingRequest.targetEventId)}
+                    </div>
+                  )}
                 </div>
                 <button className="btn secondary" style={{ width: '100%', justifyContent: 'center', color: '#ef4444', borderColor: '#ef4444' }} onClick={handleCancelRequest} disabled={loading}>
                   {loading ? 'Cancelando...' : 'Cancelar Solicitação'}
@@ -355,7 +627,7 @@ export default function EventDetailsModal({ event, authUser, users, existingRequ
                 <button className="btn" style={{ width: '100%', justifyContent: 'center', background: '#10b981', borderColor: '#10b981', color: '#fff' }} onClick={handleCheckIn} disabled={locLoading || !isActionable()}>
                   {locLoading ? 'Verificando localização...' : 'Fazer Check-In'}
                 </button>
-                <button className="btn" style={{ width: '100%', justifyContent: 'center', background: '#f59e0b', borderColor: '#f59e0b', color: '#fff' }} onClick={() => setShowForm(true)} disabled={locLoading || isEventPassed()}>
+                <button className="btn" style={{ width: '100%', justifyContent: 'center', background: '#f59e0b', borderColor: '#f59e0b', color: '#fff' }} onClick={() => { setType('B'); setShowForm(true); }} disabled={locLoading || isEventPassed()}>
                   Não poderei ir / Solicitar Substituição
                 </button>
               </>
@@ -363,10 +635,12 @@ export default function EventDetailsModal({ event, authUser, users, existingRequ
           </div>
         ) : (
           <form onSubmit={handleSubmit} style={{ background: '#fffbeb', padding: 16, borderRadius: 8, border: '1px solid #fde68a' }}>
-            <h3 style={{ fontSize: 16, margin: '0 0 12px 0', color: '#b45309' }}>Solicitar Substituição</h3>
+            <h3 style={{ fontSize: 16, margin: '0 0 12px 0', color: '#b45309' }}>
+              {type === 'C' ? 'Solicitar Troca de Escala' : 'Solicitar Substituição'}
+            </h3>
             
             <div style={{ marginBottom: 12 }}>
-              <label style={{ display: 'block', marginBottom: 4, fontWeight: 500 }}>Tipo de Substituição</label>
+              <label style={{ display: 'block', marginBottom: 4, fontWeight: 500 }}>Tipo de Solicitação</label>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <input type="radio" name="type" checked={type === 'A'} onChange={() => setType('A')} />
@@ -375,6 +649,10 @@ export default function EventDetailsModal({ event, authUser, users, existingRequ
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <input type="radio" name="type" checked={type === 'B'} onChange={() => setType('B')} />
                   Não tenho substituto (Pedir Ajuda)
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <input type="radio" name="type" checked={type === 'C'} onChange={() => setType('C')} />
+                  Trocar de escala com outro cerimoniário
                 </label>
               </div>
             </div>
@@ -396,6 +674,38 @@ export default function EventDetailsModal({ event, authUser, users, existingRequ
                   ))}
                 </select>
               </div>
+            )}
+
+            {type === 'C' && (
+              <>
+                <div className="form-group">
+                  <label>Selecione o Cerimoniário</label>
+                  <select className="input" value={swapUserId} onChange={e => { setSwapUserId(e.target.value); setSwapEventId(''); }} required>
+                    <option value="">-- Selecione --</option>
+                    {swapCandidates.map(u => (
+                      <option key={u._id} value={u._id}>{u.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Selecione a Escala para Troca</label>
+                  <select className="input" value={swapEventId} onChange={e => setSwapEventId(e.target.value)} required disabled={!swapUserId || futureEventsLoading}>
+                    <option value="">{futureEventsLoading ? 'Carregando escalas...' : '-- Selecione --'}</option>
+                    {swapEventsForUser.map(ev => (
+                      <option key={ev._id} value={ev._id}>
+                        {formatSwapEventLabel(ev)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {swapError && (
+                  <div style={{ color: '#ef4444', fontSize: 13, marginBottom: 12 }}>
+                    {swapError}
+                  </div>
+                )}
+              </>
             )}
 
             <div className="form-group">
@@ -425,7 +735,7 @@ export default function EventDetailsModal({ event, authUser, users, existingRequ
             </div>
 
             <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-              <button type="button" className="btn secondary" style={{ flex: 1, justifyContent: 'center' }} onClick={() => { setShowForm(false); setReasonError(false); setReason(''); }}>Cancelar</button>
+              <button type="button" className="btn secondary" style={{ flex: 1, justifyContent: 'center' }} onClick={() => { setShowForm(false); setReasonError(false); setReason(''); setSwapError(''); }}>Cancelar</button>
               <button type="submit" className="btn" style={{ flex: 1, justifyContent: 'center' }} disabled={loading}>
                 {loading ? 'Enviando...' : 'Confirmar'}
               </button>

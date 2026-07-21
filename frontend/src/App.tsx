@@ -434,6 +434,13 @@ export default function App() {
 
   const getLocationName = (locationId: string) => {
     if (!locationId) return 'Local não informado';
+    if (typeof locationId === 'object') {
+      if (locationId.name) return locationId.name;
+      if (locationId._id) {
+        const location = locations.find(loc => loc._id === locationId._id);
+        return location ? location.name : 'Local não informado';
+      }
+    }
     const location = locations.find(loc => loc._id === locationId);
     return location ? location.name : 'Local não informado';
   };
@@ -619,10 +626,19 @@ export default function App() {
                           {substitutionRequests.filter(r => r.status === 'PENDING').map(req => (
                             <div key={req._id} style={{ background: '#fff', padding: 12, borderRadius: 6, border: '1px solid #fef3c7', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                               <div>
-                                <div style={{ fontWeight: 600 }}>{req.originalUserId?.name} quer ser substituído por {req.substituteUserId?.name}</div>
+                                <div style={{ fontWeight: 600 }}>
+                                  {req.requestType === 'SWAP'
+                                    ? `${req.originalUserId?.name} quer trocar de escala com ${req.substituteUserId?.name}`
+                                    : `${req.originalUserId?.name} quer ser substituído por ${req.substituteUserId?.name}`}
+                                </div>
                                 <div style={{ fontSize: 13, color: '#64748b' }}>
                                   Escala: {getLocationName(req.eventId?.locationId)} - {new Date(req.eventId?.date).toLocaleDateString('pt-BR')} às {req.eventId?.time?.start}
                                 </div>
+                                {req.requestType === 'SWAP' && req.targetEventId && (
+                                  <div style={{ fontSize: 13, color: '#64748b' }}>
+                                    Troca com: {getLocationName(req.targetEventId?.locationId)} - {new Date(req.targetEventId?.date).toLocaleDateString('pt-BR')} às {req.targetEventId?.time?.start}
+                                  </div>
+                                )}
                                 {isAdmin && req.reason && <div style={{ fontSize: 13, fontStyle: 'italic', marginTop: 4 }}>"{req.reason}"</div>}
                               </div>
                               <div style={{ display: 'flex', gap: 8 }}>
@@ -636,13 +652,13 @@ export default function App() {
                     </div>
                   )}
 
-                  {substitutionRequests.filter(r => String(r.substituteUserId?._id || r.substituteUserId) === String(authUser?._id) && r.status === 'AWAITING_SUBSTITUTE').length > 0 && (
+                  {substitutionRequests.filter(r => r.requestType !== 'SWAP' && String(r.substituteUserId?._id || r.substituteUserId) === String(authUser?._id) && r.status === 'AWAITING_SUBSTITUTE').length > 0 && (
                     <div style={{ margin: '16px 0', padding: 16, backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8 }}>
                       <h3 style={{ margin: '0 0 12px 0', color: '#15803d', display: 'flex', alignItems: 'center', gap: 8 }}>
                         <span>🙋‍♂️</span> Substituições Aguardando Sua Confirmação
                       </h3>
                       <div style={{ display: 'grid', gap: 8 }}>
-                        {substitutionRequests.filter(r => String(r.substituteUserId?._id || r.substituteUserId) === String(authUser?._id) && r.status === 'AWAITING_SUBSTITUTE').map(req => (
+                        {substitutionRequests.filter(r => r.requestType !== 'SWAP' && String(r.substituteUserId?._id || r.substituteUserId) === String(authUser?._id) && r.status === 'AWAITING_SUBSTITUTE').map(req => (
                           <div key={req._id} style={{ background: '#fff', padding: 12, borderRadius: 6, border: '1px solid #dcfce7', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                             <div>
                               <div style={{ fontWeight: 600 }}>{req.originalUserId?.name} pediu para ser substituído por você.</div>
@@ -653,6 +669,34 @@ export default function App() {
                             </div>
                             <div style={{ display: 'flex', gap: 8 }}>
                               <button className="btn" style={{ background: '#10b981', borderColor: '#10b981' }} onClick={() => handleAcceptSubstitute(req._id)}>Aceitar</button>
+                              <button className="btn secondary" style={{ color: '#ef4444', borderColor: '#ef4444' }} onClick={() => handleRejectSubstitute(req._id)}>Recusar</button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {substitutionRequests.filter(r => r.requestType === 'SWAP' && String(r.substituteUserId?._id || r.substituteUserId) === String(authUser?._id) && r.status === 'AWAITING_SUBSTITUTE').length > 0 && (
+                    <div style={{ margin: '16px 0', padding: 16, backgroundColor: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 8 }}>
+                      <h3 style={{ margin: '0 0 12px 0', color: '#6d28d9', display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span>🔁</span> Trocas de Escala Aguardando Sua Confirmação
+                      </h3>
+                      <div style={{ display: 'grid', gap: 8 }}>
+                        {substitutionRequests.filter(r => r.requestType === 'SWAP' && String(r.substituteUserId?._id || r.substituteUserId) === String(authUser?._id) && r.status === 'AWAITING_SUBSTITUTE').map(req => (
+                          <div key={req._id} style={{ background: '#fff', padding: 12, borderRadius: 6, border: '1px solid #ddd6fe', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                            <div>
+                              <div style={{ fontWeight: 600 }}>{req.originalUserId?.name} quer trocar de escala com você.</div>
+                              <div style={{ fontSize: 13, color: '#64748b' }}>
+                                Sua escala: {getLocationName(req.targetEventId?.locationId)} - {new Date(req.targetEventId?.date).toLocaleDateString('pt-BR')} às {req.targetEventId?.time?.start}
+                              </div>
+                              <div style={{ fontSize: 13, color: '#64748b' }}>
+                                Escala dele: {getLocationName(req.eventId?.locationId)} - {new Date(req.eventId?.date).toLocaleDateString('pt-BR')} às {req.eventId?.time?.start}
+                              </div>
+                              {isAdmin && req.reason && <div style={{ fontSize: 13, fontStyle: 'italic', marginTop: 4 }}>Motivo: "{req.reason}"</div>}
+                            </div>
+                            <div style={{ display: 'flex', gap: 8 }}>
+                              <button className="btn" style={{ background: '#10b981', borderColor: '#10b981' }} onClick={() => handleAcceptSubstitute(req._id)}>Aceitar troca</button>
                               <button className="btn secondary" style={{ color: '#ef4444', borderColor: '#ef4444' }} onClick={() => handleRejectSubstitute(req._id)}>Recusar</button>
                             </div>
                           </div>
@@ -841,20 +885,32 @@ export default function App() {
                   </section>
                   
                   {selectedEventForModal && (
+                    (() => {
+                      const selectedEventRequest = substitutionRequests.find(r => 
+                        (r.status === 'PENDING' || r.status === 'OPEN' || r.status === 'AWAITING_SUBSTITUTE') && 
+                        (
+                          String(r.eventId?._id || r.eventId) === String(selectedEventForModal._id) ||
+                          String(r.targetEventId?._id || r.targetEventId) === String(selectedEventForModal._id)
+                        ) && 
+                        (
+                          String(r.originalUserId?._id || r.originalUserId) === String(authUser._id) ||
+                          (r.requestType === 'SWAP' && String(r.substituteUserId?._id || r.substituteUserId) === String(authUser._id))
+                        )
+                      );
+
+                      return (
                     <EventDetailsModal 
                       event={selectedEventForModal} 
                       authUser={authUser} 
                       users={users} 
-                      existingRequest={substitutionRequests.find(r => 
-                        (r.status === 'PENDING' || r.status === 'OPEN' || r.status === 'AWAITING_SUBSTITUTE') && 
-                        String(r.eventId?._id || r.eventId) === String(selectedEventForModal._id) && 
-                        String(r.originalUserId?._id || r.originalUserId) === String(authUser._id)
-                      )}
+                      existingRequest={selectedEventRequest}
                       onClose={() => setSelectedEventForModal(null)}
                       onRequestSubmitted={() => {
                         window.location.reload();
                       }}
                     />
+                      );
+                    })()
                   )}
                 </>
               )}
