@@ -153,6 +153,20 @@ router.post('/:id/volunteer', async (req, res) => {
     const request = await SubstitutionRequest.findById(req.params.id);
     if (!request) return res.status(404).json({ error: 'Not found' });
     if (request.status !== 'OPEN') return res.status(400).json({ error: 'Request is not OPEN' });
+    if (!substituteUserId) return res.status(400).json({ error: 'substituteUserId required for volunteer requests' });
+
+    const sourceEvent = await AgendaEvent.findById(request.eventId).populate('users.userId');
+    if (!sourceEvent) return res.status(404).json({ error: 'event not found' });
+
+    const sourceHasUser = (sourceEvent.users || []).some((u: any) => String(u.userId?._id || u.userId) === String(substituteUserId));
+    if (sourceHasUser) {
+      return res.status(400).json({ error: 'Você já está escalado nesta missa.' });
+    }
+
+    const conflict = await hasConflictWithinTwoHours(String(substituteUserId), sourceEvent, [String(sourceEvent._id)]);
+    if (conflict) {
+      return res.status(400).json({ error: 'Você já tem outra escala com menos de 2 horas de diferença para esta ajuda.' });
+    }
 
     request.substituteUserId = substituteUserId;
     request.status = 'PENDING';
@@ -274,7 +288,7 @@ router.post('/:id/approve', async (req, res) => {
         request.substituteUserId = substituteUserId;
     }
 
-    if (request.requestType === 'DIRECT' && request.substituteUserId) {
+    if (request.requestType !== 'SWAP' && request.substituteUserId) {
       const sourceEvent = await AgendaEvent.findById(request.eventId).populate('users.userId');
       if (!sourceEvent) return res.status(404).json({ error: 'event not found' });
 
