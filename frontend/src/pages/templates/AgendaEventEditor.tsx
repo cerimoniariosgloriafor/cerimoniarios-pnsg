@@ -91,6 +91,7 @@ export default function AgendaEventEditor({ predate, id }: { predate?: string, i
     if (found) {
       setLocationId(found.locationId?._id || found.locationId || null);
       setTimeStart(found.time?.start || '');
+      setPriestName(found.priestName || '');
       const u = (found.users || []).map((uu: any) => ({ userId: uu._id, roles: [] }));
       setAssignedUsers(u);
       setTitle(prevTitle => prevTitle || found.title || '');

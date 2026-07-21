@@ -20,6 +20,7 @@ export default function ShiftTemplateEditor({ id, onSaved }: any) {
   const [locationId, setLocationId] = useState('');
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [timeStart, setTimeStart] = useState('09:00');
+  const [priestName, setPriestName] = useState('');
   const [recurrenceType, setRecurrenceType] = useState<'weekly'|'monthlyByWeekday'|'monthlyByMonthday'>('weekly');
   const [weekdays, setWeekdays] = useState<number[]>([]);
   const [weekOfMonth, setWeekOfMonth] = useState(1);
@@ -41,6 +42,7 @@ export default function ShiftTemplateEditor({ id, onSaved }: any) {
       setLocationId(typeof d.locationId === 'string' ? d.locationId : (d.locationId?._id || ''));
       setSelectedUsers((d.users||[]).map((u:any)=>u._id || u));
       setTimeStart(d.time?.start || '09:00');
+      setPriestName(d.priestName || '');
       const type = d.recurrence?.type || 'weekly';
       setRecurrenceType(type);
       if (type === 'weekly') setWeekdays(d.recurrence.weekly?.weekdays || [1,2,3,4,5,6]);
@@ -69,6 +71,7 @@ export default function ShiftTemplateEditor({ id, onSaved }: any) {
     try {
       const payload:any = {
         title: '',
+        priestName,
         locationId,
         users: selectedUsers,
         time: { start: timeStart },
@@ -137,6 +140,16 @@ export default function ShiftTemplateEditor({ id, onSaved }: any) {
                 <label style={{ fontWeight:700 }}>Cerimoniários</label>
                 <UserMultiSelect users={users} value={selectedUsers} onChange={(v:any) => setSelectedUsers(v)} />
               </div>
+            </div>
+
+            <div style={{ marginTop: 12 }}>
+              <div style={{ fontWeight: 600, marginBottom: 6 }}>Nome do padre</div>
+              <input
+                className="input"
+                value={priestName}
+                onChange={e => setPriestName(e.target.value)}
+                style={{ width: '100%', padding: 8, border: '1px solid #e5e7eb', borderRadius: 6 }}
+              />
             </div>
 
             <div style={{ marginTop:10 }}>  
