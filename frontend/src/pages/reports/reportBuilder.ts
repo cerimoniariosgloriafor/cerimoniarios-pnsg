@@ -1,6 +1,7 @@
 export interface ReportLine {
   text: string;
   bold?: boolean;
+  align?: 'left' | 'center';
 }
 
 function roleRank(role: string) {
@@ -48,16 +49,18 @@ export const buildPrintableReport = (
     }
   };
 
-  lines.push({ text: 'Relatório de Missas', bold: true });
+  lines.push({ text: 'Paróquia Nossa Senhora da Glória', bold: true, align: 'center' });
+  lines.push({ text: 'RELATÓRIOS P.CERIMONIÁRIOS', bold: true, align: 'center' });
+  lines.push({ text: `Coordenador Responsável: Francisco Alexandre Feijão de Freitas`, align: 'center' });
+  lines.push({ text: `Vice-Coordenador: André da Silva Crippa`, align: 'center' });
+
   lines.push({
     text: `Período: ${startDate ? formatDate(startDate) : 'N/A'} a ${
       endDate ? formatDate(endDate) : 'N/A'
     }`,
+    align: 'center',
   });
-  lines.push({ text: `Total de missas: ${events.length}` });
-  lines.push({
-    text: `Gerado em: ${new Date().toLocaleString('pt-BR')}`,
-  });
+
   lines.push({ text: '-'.repeat(80) });
   lines.push({ text: '' });
 
@@ -75,41 +78,32 @@ export const buildPrintableReport = (
 
     lines.push({ text: '='.repeat(40) });
 
-    // TÍTULO EM NEGRITO
+    lines.push({
+      text: `${eventTimeLabel} - ${event.locationId?.name || 'Não informado'}`,
+      bold: true,
+    });
+
     lines.push({
       text: event.title || 'Missa',
-      bold: true,
     });
 
     lines.push({
-      text: `Local: ${
-        event.locationId?.name || 'Não informado'
-      } - ${eventTimeLabel}`,
-    });
-
-    lines.push({
-      text: `Padre: ${event.priestName || 'Não informado'}`,
-    });
-
-    lines.push({
-      text: `Coroinhas: ${event.acolyteCount || 0}`,
-    });
-
-    lines.push({ text: '' });
-
-    lines.push({
-      text: 'Servos:',
-      bold: true,
+      text: `${event.priestName || 'Não informado'}`,
     });
 
     if (checkedInUsers.length > 0) {
+      const availableRolesOrder = ['M.C.', 'C.A.', 'C.L.', 'C.D.'];
       checkedInUsers.forEach((u: any) => {
-        const roles =
-          sortRolesList(u.roles || []).join(', ') || 'Sem função';
-
-        lines.push({
-          text: `• ${u.userId?.name || 'Desconhecido'} (${roles})`,
-        });
+        if (u.roles && u.roles.length > 0) {
+          const sortedRoles = [...u.roles].sort((a, b) => {
+            const aIdx = availableRolesOrder.indexOf(a);
+            const bIdx = availableRolesOrder.indexOf(b);
+            return aIdx - bIdx;
+          });
+          lines.push({
+            text: `${sortedRoles[0]}: ${u.userId?.name || 'Desconhecido'}`,
+          });
+        }
       });
     } else {
       lines.push({
@@ -117,16 +111,18 @@ export const buildPrintableReport = (
       });
     }
 
+    lines.push({
+      text: `Coroinhas: ${event.acolyteCount || 0}`,
+    });
+
     const occs = (event.occurrences || []).filter(
       (o: any) => String(o.note || '').trim() !== '',
     );
 
     if (occs.length > 0) {
-    lines.push({ text: '' });
     
       lines.push({
-        text: 'Intercorrências Registradas:',
-        bold: true,
+        text: 'Intercorrências:',
       });
 
       occs.forEach((o: any) => {

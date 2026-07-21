@@ -529,7 +529,11 @@ export default function IndividualReportPage(props: IndividualReportPageProps) {
           y = 10;
         }
 
-        pdf.text(wrappedLine, 10, y);
+        if (line.align === 'center') {
+          pdf.text(wrappedLine, pdf.internal.pageSize.getWidth() / 2, y, { align: 'center' });
+        } else {
+          pdf.text(wrappedLine, 10, y);
+        }
         y += 5;
       });
     });
