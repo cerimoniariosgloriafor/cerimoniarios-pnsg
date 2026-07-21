@@ -159,7 +159,29 @@ export default function AgendaEventEditor({ predate, id }: { predate?: string, i
             <div style={{ color: '#666', marginTop: 4 }}>Criação de evento/escala avulsa</div>
           </div>
 
-          {/* Title and liturgical color first */}
+                    {/* Date and time follow */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, alignItems: 'center', marginTop: 12 }}>
+            <div>
+              <div style={{ fontWeight: 600, marginBottom: 6 }}>Data</div>
+              <input type="date" value={date} onChange={e => setDate(e.target.value)} style={{ width: '100%', padding: 8, border: '1px solid #e5e7eb', borderRadius: 6 }} />
+            </div>
+
+            <div>
+              <div style={{ fontWeight: 600, marginBottom: 6 }}>Horário</div>
+              <input type="time" value={timeStart} onChange={e => setTimeStart(e.target.value)} placeholder="HH:MM" pattern="([01]?[0-9]|2[0-3]):[0-5][0-9]" style={{ width: '100%', padding: 8, border: '1px solid #e5e7eb', borderRadius: 6 }} />
+            </div>
+          </div>
+
+          <div style={{ marginTop: 12 }}>
+            <div style={{ fontWeight: 600, marginBottom: 6 }}>Templates disponíveis para esta data</div>
+            <select value={selectedTemplateId || ''} onChange={e => onSelectTemplate(e.target.value)} style={{ width: '100%', padding: 8, border: '1px solid #e5e7eb', borderRadius: 6 }}>
+              <option value="">-- nenhum --</option>
+              {templates.map(t => (
+                <option key={t.template._id} value={t.template._id}>{`${t.template.locationId?.name || ''} - ${t.template.time?.start || ''}`}</option>
+              ))}
+            </select>
+          </div>
+
           <div style={{ marginTop: 12 }}>
             <div style={{ fontWeight: 600, marginBottom: 6 }}>Título da Missa</div>
             <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Ex: VERMELHO - Memória de São Carlos..." style={{ width: '100%', padding: 8, border: '1px solid #e5e7eb', borderRadius: 6 }} />
@@ -173,29 +195,6 @@ export default function AgendaEventEditor({ predate, id }: { predate?: string, i
               <option value="branco">Branco</option>
               <option value="roxo">Roxo</option>
               <option value="vermelho">Vermelho</option>
-            </select>
-          </div>
-
-          {/* Date and time follow */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, alignItems: 'center', marginTop: 12 }}>
-            <div>
-              <div style={{ fontWeight: 600, marginBottom: 6 }}>Data</div>
-              <input type="date" value={date} onChange={e => setDate(e.target.value)} style={{ width: '100%', padding: 8, border: '1px solid #e5e7eb', borderRadius: 6 }} />
-            </div>
-
-            <div>
-              <div style={{ fontWeight: 600, marginBottom: 6 }}>Horário</div>
-              <input value={timeStart} onChange={e => setTimeStart(e.target.value)} placeholder="HH:MM" style={{ width: '100%', padding: 8, border: '1px solid #e5e7eb', borderRadius: 6 }} />
-            </div>
-          </div>
-
-          <div style={{ marginTop: 12 }}>
-            <div style={{ fontWeight: 600, marginBottom: 6 }}>Templates disponíveis para esta data</div>
-            <select value={selectedTemplateId || ''} onChange={e => onSelectTemplate(e.target.value)} style={{ width: '100%', padding: 8, border: '1px solid #e5e7eb', borderRadius: 6 }}>
-              <option value="">-- nenhum --</option>
-              {templates.map(t => (
-                <option key={t.template._id} value={t.template._id}>{`${t.template.locationId?.name || ''} - ${t.template.time?.start || ''}`}</option>
-              ))}
             </select>
           </div>
 
