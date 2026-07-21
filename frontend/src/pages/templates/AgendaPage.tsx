@@ -18,14 +18,25 @@ function addDays(d: Date, n: number) {
   return r;
 }
 
+function parseIsoDate(value: string) {
+  const [y, m, d] = value.split('-').map(Number);
+  if (!y || !m || !d) return null;
+  const date = new Date(y, m - 1, d);
+  if (Number.isNaN(date.getTime())) return null;
+  return date;
+}
+
 function formatShort(d: Date) {
   return d.toLocaleDateString(undefined, { weekday: 'short', day: '2-digit', month: 'short' });
 }
 
 export default function AgendaPage() {
-  const today = new Date();
-  const [baseWeek, setBaseWeek] = useState<Date>(() => startOfIsoWeek(today));
-  const [selected, setSelected] = useState<Date>(() => new Date(today));
+  const [selected, setSelected] = useState<Date>(() => {
+    const params = new URLSearchParams(window.location.search);
+    const dateParam = params.get('date');
+    return dateParam ? parseIsoDate(dateParam) || new Date() : new Date();
+  });
+  const [baseWeek, setBaseWeek] = useState<Date>(() => startOfIsoWeek(selected));
   const [selectedLocation, setSelectedLocation] = useState<string>('');
   const [pickerVisible, setPickerVisible] = useState(false);
   const dateInputRef = useRef<HTMLInputElement | null>(null);

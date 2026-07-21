@@ -121,7 +121,7 @@ export default function AgendaEventEditor({ predate, id }: { predate?: string, i
       } else {
         res = await axios.post('/agenda-events', payload);
       }
-      window.history.pushState({}, '', '/agenda');
+      window.history.pushState({}, '', `/agenda?date=${date}`);
       window.dispatchEvent(new PopStateEvent('popstate'));
     } catch (err: any) {
       console.error('create/update event', err);

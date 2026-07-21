@@ -4,24 +4,11 @@ import { useAuth } from '../../context/AuthContext';
 import { buildPrintableReport } from './reportBuilder';
 import { jsPDF } from 'jspdf';
 
-function toDateInputValue(date: Date) {
+function formatLocalDate(date: Date) {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
   const d = String(date.getDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
-}
-
-function startOfMonth(date: Date) {
-  const d = new Date(date);
-  d.setDate(1);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
-
-function endOfMonth(date: Date) {
-  const d = new Date(date.getFullYear(), date.getMonth() + 1, 0);
-  d.setHours(23, 59, 59, 999);
-  return d;
 }
 
 function capitalize(value: string) {
@@ -420,8 +407,9 @@ function IndividualReportModal({
 export default function IndividualReportPage(props: IndividualReportPageProps) {
   const { user } = useAuth();
   void props.onBack;
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const today = formatLocalDate(new Date());
+  const [startDate, setStartDate] = useState(today);
+  const [endDate, setEndDate] = useState(today);
   const [locationId, setLocationId] = useState('');
   const [locations, setLocations] = useState<any[]>([]);
   const [events, setEvents] = useState<any[]>([]);
@@ -471,8 +459,8 @@ export default function IndividualReportPage(props: IndividualReportPageProps) {
   useEffect(() => {
     if (user?.role !== 'admin') return;
     const today = new Date();
-    const initialStart = toDateInputValue(startOfMonth(today));
-    const initialEnd = toDateInputValue(endOfMonth(today));
+    const initialStart = formatLocalDate(today);
+    const initialEnd = formatLocalDate(today);
     setStartDate(initialStart);
     setEndDate(initialEnd);
     fetchLocations();
