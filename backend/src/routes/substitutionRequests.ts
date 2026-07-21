@@ -100,6 +100,21 @@ router.post('/', async (req, res) => {
       if (substituteConflict) {
         return res.status(400).json({ error: 'O outro cerimoniário já tem outra escala com menos de 2 horas de diferença para essa troca.' });
       }
+    } else if (normalizedType === 'DIRECT') {
+      if (!substituteUserId) return res.status(400).json({ error: 'substituteUserId required for direct substitution requests' });
+
+      const sourceEvent = await AgendaEvent.findById(eventId).populate('users.userId');
+      if (!sourceEvent) return res.status(404).json({ error: 'event not found' });
+
+      const sourceHasUser = (sourceEvent.users || []).some((u: any) => String(u.userId?._id || u.userId) === String(originalUserId));
+      if (!sourceHasUser) {
+        return res.status(400).json({ error: 'Você precisa estar escalado na escala de origem.' });
+      }
+
+      const substituteConflict = await hasConflictWithinTwoHours(String(substituteUserId), sourceEvent, [String(sourceEvent._id)]);
+      if (substituteConflict) {
+        return res.status(400).json({ error: 'O outro cerimoniário já tem outra escala com menos de 2 horas de diferença para esta substituição.' });
+      }
     }
 
     const request = new SubstitutionRequest({
@@ -257,6 +272,20 @@ router.post('/:id/approve', async (req, res) => {
 
     if (request.status === 'OPEN' && substituteUserId) {
         request.substituteUserId = substituteUserId;
+    }
+
+    if (request.requestType === 'DIRECT' && request.substituteUserId) {
+      const sourceEvent = await AgendaEvent.findById(request.eventId).populate('users.userId');
+      if (!sourceEvent) return res.status(404).json({ error: 'event not found' });
+
+      const substituteConflict = await hasConflictWithinTwoHours(
+        String(request.substituteUserId),
+        sourceEvent,
+        [String(sourceEvent._id)]
+      );
+      if (substituteConflict) {
+        return res.status(400).json({ error: 'A substituição não pode ser aprovada porque o outro cerimoniário já tem outra escala com menos de 2 horas de diferença.' });
+      }
     }
 
     if (request.requestType === 'SWAP') {

@@ -41,6 +41,23 @@ export default function EventDetailsModal({ event, authUser, users, existingRequ
     return start;
   };
 
+  const getUserConflictIssue = (userId: string, eventToCheck: any, ignoreEventId?: string) => {
+    const sourceStart = parseEventStart(eventToCheck);
+    if (!sourceStart || !userId) return '';
+
+    const conflict = futureEvents.some((other: any) => {
+      if (ignoreEventId && String(other._id) === String(ignoreEventId)) return false;
+      if (String(other._id) === String(eventToCheck._id)) return false;
+      const hasUser = (other.users || []).some((u: any) => String(u.userId?._id || u.userId) === String(userId));
+      if (!hasUser) return false;
+      const otherStart = parseEventStart(other);
+      if (!otherStart) return false;
+      return Math.abs(otherStart.getTime() - sourceStart.getTime()) < TWO_HOURS_MS;
+    });
+
+    return conflict ? 'Este cerimoniário já tem outra escala com menos de 2 horas de diferença.' : '';
+  };
+
   const formatSwapEventLabel = (ev: any) => {
     const dateLabel = ev?.date ? new Date(ev.date).toLocaleDateString('pt-BR') : 'Data não informada';
     const locationLabel = ev?.locationId?.name || 'Local não informado';
@@ -65,7 +82,7 @@ export default function EventDetailsModal({ event, authUser, users, existingRequ
   };
 
   useEffect(() => {
-    if (type !== 'C' || swapEventsLoaded || futureEventsLoading) return;
+    if ((type !== 'A' && type !== 'C') || swapEventsLoaded || futureEventsLoading) return;
 
     const loadFutureEvents = async () => {
       setFutureEventsLoading(true);
@@ -85,6 +102,16 @@ export default function EventDetailsModal({ event, authUser, users, existingRequ
   }, [type, swapEventsLoaded, futureEventsLoading]);
 
   useEffect(() => {
+    if (type === 'A') {
+      if (!substituteId) {
+        setSwapError('');
+        return;
+      }
+
+      setSwapError(getUserConflictIssue(substituteId, event));
+      return;
+    }
+
     if (type !== 'C') {
       setSwapError('');
       return;
@@ -135,7 +162,7 @@ export default function EventDetailsModal({ event, authUser, users, existingRequ
     if (substituteConflict) issues.push('O outro cerimoniário ficaria a menos de 2 horas de outra escala dele.');
 
     setSwapError(issues.join(' '));
-  }, [type, swapUserId, swapEventId, futureEvents, event, authUser]);
+  }, [type, substituteId, swapUserId, swapEventId, futureEvents, event, authUser]);
 
   useEffect(() => {
     if (type !== 'C') {
@@ -157,6 +184,11 @@ export default function EventDetailsModal({ event, authUser, users, existingRequ
     if (!reason.trim()) {
       setReasonError(true);
       return;
+    }
+
+    if (type === 'A') {
+      if (!substituteId) return alert('Selecione o substituto.');
+      if (swapError) return alert(swapError);
     }
 
     if (type === 'C') {
@@ -673,6 +705,11 @@ export default function EventDetailsModal({ event, authUser, users, existingRequ
                     <option key={u._id} value={u._id}>{u.name}</option>
                   ))}
                 </select>
+                {swapError && (
+                  <div style={{ color: '#ef4444', fontSize: 13, marginTop: 8 }}>
+                    {swapError}
+                  </div>
+                )}
               </div>
             )}
 
