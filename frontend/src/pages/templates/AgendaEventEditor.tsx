@@ -16,6 +16,7 @@ export default function AgendaEventEditor({ predate, id }: { predate?: string, i
   const [priestName, setPriestName] = useState<string>('');
   const [title, setTitle] = useState<string>('');
   const [color, setColor] = useState<string>('');
+  const [recurrenceCount, setRecurrenceCount] = useState<number>(0);
 
   useEffect(() => {
     (async () => {
@@ -81,13 +82,16 @@ export default function AgendaEventEditor({ predate, id }: { predate?: string, i
   const onSelectTemplate = (tid: string) => {
     if (!tid) {
       setSelectedTemplateId(null);
+      setRecurrenceCount(0);
       return;
     }
     setSelectedTemplateId(tid);
+    setRecurrenceCount(prev => prev > 0 ? prev : 0);
     const found = templates.find(t => t.template._id === tid)?.template;
     if (found) {
       setLocationId(found.locationId?._id || found.locationId || null);
       setTimeStart(found.time?.start || '');
+      setPriestName(found.priestName || '');
       const u = (found.users || []).map((uu: any) => ({ userId: uu._id, roles: [] }));
       setAssignedUsers(u);
       setTitle(prevTitle => prevTitle || found.title || '');
@@ -115,11 +119,19 @@ export default function AgendaEventEditor({ predate, id }: { predate?: string, i
         users: assignedUsers
       };
       if (selectedTemplateId) payload.templateId = selectedTemplateId;
+      if (selectedTemplateId && recurrenceCount > 0) payload.generateRecurringCount = recurrenceCount;
       let res;
       if (id) {
         res = await axios.post(`/agenda-events/${id}`, payload);
       } else {
         res = await axios.post('/agenda-events', payload);
+      }
+      const createdCount = res.data?.generatedCount || 0;
+      const skippedCount = res.data?.skippedCount || 0;
+      if (!id && selectedTemplateId && recurrenceCount > 0) {
+        alert(createdCount > 0
+          ? `Evento salvo. ${createdCount} recorrência(s) gerada(s)${skippedCount > 0 ? `, ${skippedCount} já existiam e foram ignorada(s)` : ''}.`
+          : `Evento salvo${skippedCount > 0 ? '. As recorrências já existiam e foram ignoradas.' : '.'}`);
       }
       window.history.pushState({}, '', `/agenda?date=${date}`);
       window.dispatchEvent(new PopStateEvent('popstate'));
@@ -159,7 +171,46 @@ export default function AgendaEventEditor({ predate, id }: { predate?: string, i
             <div style={{ color: '#666', marginTop: 4 }}>Criação de evento/escala avulsa</div>
           </div>
 
-          {/* Title and liturgical color first */}
+                    {/* Date and time follow */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, alignItems: 'center', marginTop: 12 }}>
+            <div>
+              <div style={{ fontWeight: 600, marginBottom: 6 }}>Data</div>
+              <input type="date" value={date} onChange={e => setDate(e.target.value)} style={{ width: '100%', padding: 8, border: '1px solid #e5e7eb', borderRadius: 6 }} />
+            </div>
+
+            <div>
+              <div style={{ fontWeight: 600, marginBottom: 6 }}>Horário</div>
+              <input type="time" value={timeStart} onChange={e => setTimeStart(e.target.value)} placeholder="HH:MM" pattern="([01]?[0-9]|2[0-3]):[0-5][0-9]" style={{ width: '100%', padding: 8, border: '1px solid #e5e7eb', borderRadius: 6 }} />
+            </div>
+          </div>
+
+          <div style={{ marginTop: 12 }}>
+            <div style={{ fontWeight: 600, marginBottom: 6 }}>Templates disponíveis para esta data</div>
+            <select value={selectedTemplateId || ''} onChange={e => onSelectTemplate(e.target.value)} style={{ width: '100%', padding: 8, border: '1px solid #e5e7eb', borderRadius: 6 }}>
+              <option value="">-- nenhum --</option>
+              {templates.map(t => (
+                <option key={t.template._id} value={t.template._id}>{`${t.template.locationId?.name || ''} - ${t.template.time?.start || ''}`}</option>
+              ))}
+            </select>
+          </div>
+
+          {!id && selectedTemplateId && (
+            <div style={{ marginTop: 12 }}>
+              <div style={{ fontWeight: 600, marginBottom: 6 }}>Gerar próximas recorrências</div>
+              <input
+                type="number"
+                min={0}
+                max={24}
+                value={recurrenceCount}
+                onChange={e => setRecurrenceCount(Math.max(0, Number(e.target.value) || 0))}
+                style={{ width: 160, padding: 8, border: '1px solid #e5e7eb', borderRadius: 6 }}
+              />
+              <div style={{ color: '#666', fontSize: 12, marginTop: 4 }}>
+                Use 0 para salvar apenas esta escala. Se informar um número maior que 0, serão criadas as próximas ocorrências.
+              </div>
+            </div>
+          )}
+
           <div style={{ marginTop: 12 }}>
             <div style={{ fontWeight: 600, marginBottom: 6 }}>Título da Missa</div>
             <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Ex: VERMELHO - Memória de São Carlos..." style={{ width: '100%', padding: 8, border: '1px solid #e5e7eb', borderRadius: 6 }} />
@@ -173,29 +224,6 @@ export default function AgendaEventEditor({ predate, id }: { predate?: string, i
               <option value="branco">Branco</option>
               <option value="roxo">Roxo</option>
               <option value="vermelho">Vermelho</option>
-            </select>
-          </div>
-
-          {/* Date and time follow */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, alignItems: 'center', marginTop: 12 }}>
-            <div>
-              <div style={{ fontWeight: 600, marginBottom: 6 }}>Data</div>
-              <input type="date" value={date} onChange={e => setDate(e.target.value)} style={{ width: '100%', padding: 8, border: '1px solid #e5e7eb', borderRadius: 6 }} />
-            </div>
-
-            <div>
-              <div style={{ fontWeight: 600, marginBottom: 6 }}>Horário</div>
-              <input value={timeStart} onChange={e => setTimeStart(e.target.value)} placeholder="HH:MM" style={{ width: '100%', padding: 8, border: '1px solid #e5e7eb', borderRadius: 6 }} />
-            </div>
-          </div>
-
-          <div style={{ marginTop: 12 }}>
-            <div style={{ fontWeight: 600, marginBottom: 6 }}>Templates disponíveis para esta data</div>
-            <select value={selectedTemplateId || ''} onChange={e => onSelectTemplate(e.target.value)} style={{ width: '100%', padding: 8, border: '1px solid #e5e7eb', borderRadius: 6 }}>
-              <option value="">-- nenhum --</option>
-              {templates.map(t => (
-                <option key={t.template._id} value={t.template._id}>{`${t.template.locationId?.name || ''} - ${t.template.time?.start || ''}`}</option>
-              ))}
             </select>
           </div>
 

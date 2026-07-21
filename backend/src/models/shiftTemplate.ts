@@ -19,6 +19,7 @@ const RecurrenceSchema = new Schema({
 
 const ShiftTemplateSchema = new Schema({
   title: { type: String },
+  priestName: { type: String },
   locationId: { type: Types.ObjectId, ref: 'Location' },
   time: {
     start: { type: String }

@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { expandTemplateOccurrences } from '../utils/rruleHelper';
 const router = Router();
 
 // Helper to check for suspended users
@@ -16,6 +17,49 @@ async function checkSuspendedUsers(users: any[], eventDate: Date) {
   return null;
 }
 
+function normalizeLocalDate(value: any) {
+  if (!value) return null;
+  if (value instanceof Date) {
+    const d = new Date(value);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const parts = value.split('-').map((p: string) => parseInt(p, 10));
+    const d = new Date(parts[0], parts[1] - 1, parts[2]);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return null;
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function getDayRange(date: Date) {
+  const start = new Date(date);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(date);
+  end.setHours(23, 59, 59, 999);
+  return { start, end };
+}
+
+async function hasDuplicateAgendaEvent(AgendaEvent: any, params: { date: Date; locationId?: any; timeStart?: string; ignoreId?: string }) {
+  const { date, locationId, timeStart, ignoreId } = params;
+  if (!date || !locationId || !timeStart) return false;
+  const { start, end } = getDayRange(date);
+  const query: any = {
+    locationId,
+    'time.start': timeStart,
+    date: { $gte: start, $lte: end }
+  };
+  if (ignoreId) {
+    query._id = { $ne: ignoreId };
+  }
+  const existing = await AgendaEvent.findOne(query);
+  return !!existing;
+}
+
 router.post('/', async (req, res) => {
   try {
     const AgendaEvent = require('../models/agendaEvent').default;
@@ -23,16 +67,30 @@ router.post('/', async (req, res) => {
     if (!body.date) return res.status(400).json({ error: 'date required' });
     if (!body.priestName) return res.status(400).json({ error: 'priestName required' });
 
-    // parse date as local if string YYYY-MM-DD
-    if (typeof body.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(body.date)) {
-      const parts = body.date.split('-').map((p: string) => parseInt(p, 10));
-      body.date = new Date(parts[0], parts[1] - 1, parts[2]);
-    } else if (body.date) {
-      body.date = new Date(body.date);
+    const generateRecurringCount = Math.max(0, parseInt(String(body.generateRecurringCount || 0), 10) || 0);
+    const templateId = body.templateId;
+    let templateDoc: any = null;
+    const normalizedDate = normalizeLocalDate(body.date);
+    if (!normalizedDate) return res.status(400).json({ error: 'date required' });
+    body.date = normalizedDate;
+
+    const timeStart = body.time?.start || '';
+    if (!timeStart) return res.status(400).json({ error: 'time.start required' });
+
+    if (generateRecurringCount > 0) {
+      if (!templateId) {
+        return res.status(400).json({ error: 'templateId required to generate recurring events' });
+      }
+
+      const ShiftTemplate = require('../models/shiftTemplate').default;
+      templateDoc = await ShiftTemplate.findById(templateId).populate('locationId').populate('users');
+      if (!templateDoc) {
+        return res.status(404).json({ error: 'template not found' });
+      }
     }
-    // ensure the stored date is normalized to local midnight to avoid UTC shifts
-    if (body.date && body.date instanceof Date && !isNaN(body.date.getTime())) {
-      body.date.setHours(0,0,0,0);
+
+    if (await hasDuplicateAgendaEvent(AgendaEvent, { date: body.date, locationId: body.locationId, timeStart })) {
+      return res.status(400).json({ error: 'Já existe um evento cadastrado para este local e horário.' });
     }
 
     // Check for suspended users
@@ -49,8 +107,47 @@ router.post('/', async (req, res) => {
 
     const ev = new AgendaEvent(body);
     await ev.save();
+
+    let generated: any[] = [];
+    if (generateRecurringCount > 0) {
+      const startRange = new Date(body.date);
+      startRange.setDate(startRange.getDate() + 1);
+      const endRange = new Date(body.date);
+      endRange.setFullYear(endRange.getFullYear() + 5);
+
+      const occurrences = expandTemplateOccurrences(templateDoc.toObject ? templateDoc.toObject() : templateDoc, startRange, endRange);
+      const futureDates = occurrences.slice(0, generateRecurringCount);
+
+      for (const futureDate of futureDates) {
+        const futureDoc = new AgendaEvent({
+          ...body,
+          date: futureDate,
+          createdAt: undefined,
+          updatedAt: undefined
+        });
+
+        const duplicate = await hasDuplicateAgendaEvent(AgendaEvent, {
+          date: futureDate,
+          locationId: body.locationId,
+          timeStart,
+        });
+
+        if (duplicate) {
+          generated.push({ date: futureDate, skipped: true, reason: 'duplicate' });
+          continue;
+        }
+
+        await futureDoc.save();
+        generated.push({ date: futureDate, skipped: false, id: futureDoc._id });
+      }
+    }
+
     const populated = await AgendaEvent.findById(ev._id).populate('locationId').populate('users.userId');
-    res.json(populated || ev);
+    res.json({
+      event: populated || ev,
+      generatedCount: generated.filter(item => !item.skipped).length,
+      skippedCount: generated.filter(item => item.skipped).length,
+    });
   } catch (err) {
     console.error('agendaEvents POST error', err);
     res.status(500).json({ error: 'failed to create event', details: (err as any)?.message });
@@ -128,15 +225,15 @@ router.post('/:id', async (req, res) => {
   try {
     const AgendaEvent = require('../models/agendaEvent').default;
     const body = req.body || {};
-    if (body.date && typeof body.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(body.date)) {
-      const parts = body.date.split('-').map((p: string) => parseInt(p, 10));
-      body.date = new Date(parts[0], parts[1] - 1, parts[2]);
-    } else if (body.date) {
-      body.date = new Date(body.date);
-    }
-    // normalize to local midnight so updates don't introduce a time component that shifts day
-    if (body.date && body.date instanceof Date && !isNaN(body.date.getTime())) {
-      body.date.setHours(0,0,0,0);
+    const normalizedDate = normalizeLocalDate(body.date);
+    if (!normalizedDate) return res.status(400).json({ error: 'date required' });
+    body.date = normalizedDate;
+
+    const timeStart = body.time?.start || '';
+    if (!timeStart) return res.status(400).json({ error: 'time.start required' });
+
+    if (await hasDuplicateAgendaEvent(AgendaEvent, { date: body.date, locationId: body.locationId, timeStart, ignoreId: req.params.id })) {
+      return res.status(400).json({ error: 'Já existe um evento cadastrado para este local e horário.' });
     }
 
     // Check for suspended users
