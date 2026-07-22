@@ -72,6 +72,38 @@ export default function UsersPage({ users, onCreated }: any) {
     }
   };
 
+  const handleUnavailable = async (u: any, e: any) => {
+    e?.stopPropagation?.();
+    const isUnavailable = u.unavailableUntil && new Date(u.unavailableUntil) > new Date();
+    if (isUnavailable) {
+      if (!confirm(`Este usuário está indisponível até ${new Date(u.unavailableUntil).toLocaleDateString('pt-BR')}. Deseja remover a indisponibilidade?`)) return;
+      try {
+        await axios.post(`/users/${u._id}/unavailable`, { days: 0 });
+        setOrdered(prev => prev.map(item => item._id === u._id ? { ...item, unavailableUntil: null } : item));
+        onCreated?.();
+      } catch (err) {
+        console.error('remove unavailability error', err);
+        alert('Erro ao remover indisponibilidade');
+      }
+    } else {
+      const daysStr = prompt(`Quantos dias deseja marcar o usuário ${u.name} como indisponível?`);
+      if (daysStr === null) return;
+      const days = parseInt(daysStr, 10);
+      if (isNaN(days) || days <= 0) {
+        alert('Quantidade de dias inválida.');
+        return;
+      }
+      try {
+        const res = await axios.post(`/users/${u._id}/unavailable`, { days });
+        setOrdered(prev => prev.map(item => item._id === u._id ? { ...item, unavailableUntil: res.data.unavailableUntil } : item));
+        onCreated?.();
+      } catch (err) {
+        console.error('set unavailable error', err);
+        alert('Erro ao marcar como indisponível');
+      }
+    }
+  };
+
   const onDragStart = (e: any, id: string) => {
     setDraggedId(id);
     try { e.dataTransfer.setData('text/plain', id); e.dataTransfer.effectAllowed = 'move'; } catch (err) {}
@@ -161,12 +193,20 @@ export default function UsersPage({ users, onCreated }: any) {
                             ⛔
                           </span>
                         )}
+                        {u.unavailableUntil && new Date(u.unavailableUntil) > new Date() && (
+                          <span title={`Indisponível até ${new Date(u.unavailableUntil).toLocaleDateString('pt-BR')}`} style={{ marginLeft: 8, fontSize: '1.1rem' }}>
+                            🗓️
+                          </span>
+                        )}
                       </td>
                       <td className="td-sub" title={u.note || ''}>
                         {u.note ? (u.note.length > 80 ? u.note.slice(0,80) + '…' : u.note) : ('')}
                       </td>
                       <td className="td-actions">
                         <span style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                          <button className="action-btn" title={u.unavailableUntil && new Date(u.unavailableUntil) > new Date() ? "Remover Indisponibilidade" : "Marcar como Indisponível"} onClick={(e) => handleUnavailable(u, e)}>
+                            {u.unavailableUntil && new Date(u.unavailableUntil) > new Date() ? "✅" : "🗓️"}
+                          </button>
                           <button className="action-btn" title={u.suspendedUntil && new Date(u.suspendedUntil) > new Date() ? "Remover Suspensão" : "Suspender"} onClick={(e) => handleSuspend(u, e)}>
                             {u.suspendedUntil && new Date(u.suspendedUntil) > new Date() ? "✅" : "⛔"}
                           </button>

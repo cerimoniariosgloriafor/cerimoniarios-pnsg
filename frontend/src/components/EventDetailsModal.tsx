@@ -707,6 +707,7 @@ export default function EventDetailsModal({ event, authUser, users, existingRequ
                     if (String(u._id) === String(authUser._id)) return false;
                     if (u.archived) return false;
                     if (u.suspendedUntil && new Date(u.suspendedUntil) >= new Date(event.date)) return false;
+                    if (u.unavailableUntil && new Date(u.unavailableUntil) >= new Date(event.date)) return false;
                     if (assignedUserIds.includes(String(u._id))) return false;
                     return true;
                   }).sort((a, b) => a.name.localeCompare(b.name)).map(u => (

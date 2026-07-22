@@ -20,6 +20,7 @@ export default function UserEditor({ id, onSaved, isProfile, isAdmin = true }: a
   const [mustChangePassword, setMustChangePassword] = useState(false);
   const [archived, setArchived] = useState(false);
   const [suspendedUntil, setSuspendedUntil] = useState<string | null>(null);
+  const [unavailableUntil, setUnavailableUntil] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false); // Using for archive toggle loading state
 
@@ -44,6 +45,7 @@ export default function UserEditor({ id, onSaved, isProfile, isAdmin = true }: a
       setOtherPastorals((data.otherPastorals || []).join(', '));
       setArchived(data.archived || false);
       setSuspendedUntil(data.suspendedUntil || null);
+      setUnavailableUntil(data.unavailableUntil || null);
     }).catch(err => console.error('load user', err)).finally(() => setLoading(false));
     return () => { mounted = false };
   }, [id]);
@@ -135,6 +137,14 @@ export default function UserEditor({ id, onSaved, isProfile, isAdmin = true }: a
             <span style={{ fontSize: 20 }}>⛔</span>
             <div>
               <strong>Usuário suspenso até {new Date(suspendedUntil).toLocaleDateString('pt-BR')}</strong>
+            </div>
+          </div>
+        )}
+        {unavailableUntil && new Date(unavailableUntil) > new Date() && (
+          <div style={{ marginBottom: 16, padding: 12, backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, color: '#b45309', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 20 }}>🗓️</span>
+            <div>
+              <strong>Usuário indisponível até {new Date(unavailableUntil).toLocaleDateString('pt-BR')}</strong>
             </div>
           </div>
         )}

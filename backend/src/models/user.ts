@@ -18,6 +18,7 @@ const UserSchema = new Schema({
   mustChangePassword: { type: Boolean, default: false },
   archived: { type: Boolean, default: false },
   suspendedUntil: { type: Date },
+  unavailableUntil: { type: Date },
   notifications: [{
     message: { type: String, required: true },
     date: { type: Date, default: Date.now }

@@ -2,8 +2,8 @@ import { Router } from 'express';
 import { expandTemplateOccurrences } from '../utils/rruleHelper';
 const router = Router();
 
-// Helper to check for suspended users
-async function checkSuspendedUsers(users: any[], eventDate: Date) {
+// Helper to check for unavailable users
+async function checkUnavailableUsers(users: any[], eventDate: Date) {
   if (!users || !users.length) return null;
   const User = require('../models/user').default;
   const userIds = users.map(u => u.userId);
@@ -11,7 +11,10 @@ async function checkSuspendedUsers(users: any[], eventDate: Date) {
   
   for (const user of foundUsers) {
     if (user.suspendedUntil && new Date(user.suspendedUntil) >= eventDate) {
-      return user.name; // Return the name of the suspended user
+      return { name: user.name, reason: 'suspenso' };
+    }
+    if (user.unavailableUntil && new Date(user.unavailableUntil) >= eventDate) {
+      return { name: user.name, reason: 'indisponível' };
     }
   }
   return null;
@@ -93,11 +96,11 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Já existe um evento cadastrado para este local e horário.' });
     }
 
-    // Check for suspended users
+    // Check for unavailable users
     if (body.users) {
-      const suspendedName = await checkSuspendedUsers(body.users, body.date);
-      if (suspendedName) {
-        return res.status(400).json({ error: `Usuário ${suspendedName} está suspenso e não pode ser escalado nesta data.` });
+      const unavailableUser = await checkUnavailableUsers(body.users, body.date);
+      if (unavailableUser) {
+        return res.status(400).json({ error: `Usuário ${unavailableUser.name} está ${unavailableUser.reason} e não pode ser escalado nesta data.` });
       }
     }
 
@@ -236,11 +239,11 @@ router.post('/:id', async (req, res) => {
       return res.status(400).json({ error: 'Já existe um evento cadastrado para este local e horário.' });
     }
 
-    // Check for suspended users
+    // Check for unavailable users
     if (body.users && body.date) {
-      const suspendedName = await checkSuspendedUsers(body.users, body.date);
-      if (suspendedName) {
-        return res.status(400).json({ error: `Usuário ${suspendedName} está suspenso e não pode ser escalado nesta data.` });
+      const unavailableUser = await checkUnavailableUsers(body.users, body.date);
+      if (unavailableUser) {
+        return res.status(400).json({ error: `Usuário ${unavailableUser.name} está ${unavailableUser.reason} e não pode ser escalado nesta data.` });
       }
     }
 

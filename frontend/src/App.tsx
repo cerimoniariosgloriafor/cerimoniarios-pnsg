@@ -732,7 +732,7 @@ export default function App() {
                     </div>
                   )}
 
-                  {(!authUser?.archived && (!authUser?.suspendedUntil || new Date(authUser.suspendedUntil) < new Date())) && substitutionRequests.filter(r => r.status === 'OPEN').length > 0 && (
+                  {(!authUser?.archived && (!authUser?.suspendedUntil || new Date(authUser.suspendedUntil) < new Date()) && (!authUser?.unavailableUntil || new Date(authUser.unavailableUntil) < new Date())) && substitutionRequests.filter(r => r.status === 'OPEN').length > 0 && (
                     <div style={{ margin: '16px 0', padding: 16, backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8 }}>
                       <h3 style={{ margin: '0 0 12px 0', color: '#1d4ed8', display: 'flex', alignItems: 'center', gap: 8 }}>
                         <span>🤝</span> Escalas Precisando de Ajuda
@@ -781,6 +781,16 @@ export default function App() {
                       <span style={{ fontSize: 24 }}>⛔</span>
                       <div>
                         <strong>Você está suspenso até o dia {new Date(authUser.suspendedUntil).toLocaleDateString('pt-BR')}</strong>
+                        <div style={{ fontSize: 13, marginTop: 4 }}>Durante este período, você foi removido de todas as escalas e não poderá ser escalado.</div>
+                      </div>
+                    </div>
+                  )}
+
+                  {authUser?.unavailableUntil && new Date(authUser.unavailableUntil) > new Date() && (
+                    <div style={{ margin: '16px 0', padding: 16, backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, color: '#b45309', display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <span style={{ fontSize: 24 }}>🗓️</span>
+                      <div>
+                        <strong>Você está indisponível até o dia {new Date(authUser.unavailableUntil).toLocaleDateString('pt-BR')}</strong>
                         <div style={{ fontSize: 13, marginTop: 4 }}>Durante este período, você foi removido de todas as escalas e não poderá ser escalado.</div>
                       </div>
                     </div>
