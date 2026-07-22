@@ -48,6 +48,7 @@ export default function EventDetailsModal({ event, authUser, users, existingRequ
     const conflict = futureEvents.some((other: any) => {
       if (ignoreEventId && String(other._id) === String(ignoreEventId)) return false;
       if (String(other._id) === String(eventToCheck._id)) return false;
+      if (!other.color) return false;
       const hasUser = (other.users || []).some((u: any) => String(u.userId?._id || u.userId) === String(userId));
       if (!hasUser) return false;
       const otherStart = parseEventStart(other);
@@ -151,6 +152,7 @@ export default function EventDetailsModal({ event, authUser, users, existingRequ
     });
     const substituteConflict = futureEvents.some((other: any) => {
       if (String(other._id) === String(event._id) || String(other._id) === String(targetEvent._id)) return false;
+      if (!other.color) return false;
       const hasSubstitute = (other.users || []).some((u: any) => String(u.userId?._id || u.userId) === String(swapUserId));
       if (!hasSubstitute) return false;
       const otherStart = parseEventStart(other);
@@ -346,6 +348,10 @@ export default function EventDetailsModal({ event, authUser, users, existingRequ
 
   const isEventPassed = () => {
     if (!event || !event.date || !event.time?.start) return false;
+
+    if (!event.color) {
+      return true;
+    }
     
     const datePart = event.date.split('T')[0]; // "YYYY-MM-DD"
     const [year, month, day] = datePart.split('-').map(Number);
@@ -381,6 +387,7 @@ export default function EventDetailsModal({ event, authUser, users, existingRequ
     .sort((a, b) => a.name.localeCompare(b.name));
   const swapEventsForUser = futureEvents
     .filter((ev: any) => String(ev._id) !== String(event._id))
+    .filter((ev: any) => !!ev.color)
     .filter((ev: any) => (ev.users || []).some((u: any) => String(u.userId?._id || u.userId) === String(swapUserId)))
     .sort((a: any, b: any) => {
       const aStart = parseEventStart(a)?.getTime() || 0;
@@ -395,6 +402,7 @@ export default function EventDetailsModal({ event, authUser, users, existingRequ
     const issues: string[] = [];
     const requesterConflict = futureEvents.some((other: any) => {
       if (String(other._id) === String(event._id) || String(other._id) === String(ev._id)) return false;
+      if (!other.color) return false;
       const hasRequester = (other.users || []).some((u: any) => String(u.userId?._id || u.userId) === String(authUser._id));
       if (!hasRequester) return false;
       const otherStart = parseEventStart(other);

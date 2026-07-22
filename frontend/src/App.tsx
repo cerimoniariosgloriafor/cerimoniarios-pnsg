@@ -463,6 +463,7 @@ export default function App() {
 
     const conflict = dashboardEvents.some((ev: any) => {
       if (String(ev._id) === String(req?.eventId?._id || req?.eventId)) return false;
+      if (!ev.color) return false;
       const otherStart = parseEventStart(ev);
       if (!otherStart) return false;
       return Math.abs(otherStart.getTime() - targetStart.getTime()) < TWO_HOURS_MS;
