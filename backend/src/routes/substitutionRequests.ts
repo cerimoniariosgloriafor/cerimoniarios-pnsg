@@ -27,6 +27,7 @@ async function hasConflictWithinTwoHours(userId: string, targetEvent: any, ignor
 
   const events = await AgendaEvent.find(query).populate('users.userId');
   return events.some((event: any) => {
+    if (!event.color) return false;
     const eventStart = parseEventStart(event);
     if (!eventStart) return false;
     return Math.abs(eventStart.getTime() - targetStart.getTime()) < TWO_HOURS_MS;

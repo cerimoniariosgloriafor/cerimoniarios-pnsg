@@ -59,6 +59,7 @@ export default function EventReportPage({ id, onBack }: EventReportPageProps) {
       const activeUsers = (usersRes.data || []).filter((u: any) => {
         if (u.archived) return false;
         if (u.suspendedUntil && new Date(u.suspendedUntil) >= reportEventDate) return false;
+        if (u.unavailableUntil && new Date(u.unavailableUntil) >= reportEventDate) return false;
         return true;
       });
       setAvailableUsers(activeUsers);

@@ -244,7 +244,7 @@ export default function AgendaEventEditor({ predate, id }: { predate?: string, i
                   if (!confirm('Deseja adicionar todos os cerimoniários ativos que ainda não estão na lista?')) return;
                   const currentIds = new Set(assignedUsers.map(au => String(au.userId)));
                   const newUsers = users
-                    .filter(u => !u.archived && (!u.suspendedUntil || new Date(u.suspendedUntil)) <= new Date() && !currentIds.has(String(u._id)))
+                    .filter(u => !u.archived && (!u.suspendedUntil || new Date(u.suspendedUntil)) <= new Date() && (!u.unavailableUntil || new Date(u.unavailableUntil) <= new Date()) && !currentIds.has(String(u._id)))
                     .map(u => ({ userId: u._id, roles: [] }));
                   setAssignedUsers(prev => [...prev, ...newUsers]);
                 }}

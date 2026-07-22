@@ -200,6 +200,55 @@ router.post('/:id/suspend', async (req, res) => {
   }
 });
 
+router.post('/:id/unavailable', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { days } = req.body;
+    const user = await User.findById(id);
+    if (!user) return res.status(404).json({ error: 'user not found' });
+
+    let unavailableUntil = null;
+    if (typeof days === 'number' && days > 0) {
+      unavailableUntil = new Date();
+      unavailableUntil.setDate(unavailableUntil.getDate() + days);
+      // set to end of day to cover the entire last day
+      unavailableUntil.setHours(23, 59, 59, 999);
+    } else if (days === 0 || days === null) {
+      // Clear unavailability
+      unavailableUntil = null;
+    } else {
+      return res.status(400).json({ error: 'Invalid days parameter' });
+    }
+
+    (user as any).unavailableUntil = unavailableUntil;
+    await user.save();
+
+    // If unavailable, remove from upcoming events within the unavailability period
+    if (unavailableUntil) {
+      const AgendaEvent = require('../models/agendaEvent').default;
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
+      
+      // Find all events between now and unavailableUntil where this user is assigned
+      await AgendaEvent.updateMany(
+        { 
+          date: { $gte: now, $lte: unavailableUntil },
+          'users.userId': user._id
+        },
+        { 
+          $pull: { users: { userId: user._id } } 
+        }
+      );
+    }
+
+    res.json({ success: true, unavailableUntil: (user as any).unavailableUntil });
+  } catch (err) {
+    console.error('unavailable user error', err);
+    res.status(500).json({ error: 'failed to set user as unavailable', details: (err as any)?.message });
+  }
+});
+
+
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
