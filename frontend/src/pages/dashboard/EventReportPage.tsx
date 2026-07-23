@@ -119,7 +119,7 @@ export default function EventReportPage({ id, onBack }: EventReportPageProps) {
         onBack();
       }
     } catch (err) {
-      console.error('failed to save report', err);
+      console.error('failed to save report', err.response?.data || err);
       alert('Erro ao salvar relatório');
     } finally {
       setSaving(false);

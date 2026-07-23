@@ -228,22 +228,35 @@ router.post('/:id', async (req, res) => {
   try {
     const AgendaEvent = require('../models/agendaEvent').default;
     const body = req.body || {};
-    const normalizedDate = normalizeLocalDate(body.date);
-    if (!normalizedDate) return res.status(400).json({ error: 'date required' });
-    body.date = normalizedDate;
 
-    const timeStart = body.time?.start || '';
-    if (!timeStart) return res.status(400).json({ error: 'time.start required' });
-
-    if (await hasDuplicateAgendaEvent(AgendaEvent, { date: body.date, locationId: body.locationId, timeStart, ignoreId: req.params.id })) {
-      return res.status(400).json({ error: 'Já existe um evento cadastrado para este local e horário.' });
+    if (body.date !== undefined) {
+      const normalizedDate = normalizeLocalDate(body.date);
+      if (!normalizedDate) return res.status(400).json({ error: 'date required' });
+      body.date = normalizedDate;
     }
 
-    // Check for unavailable users
-    if (body.users && body.date) {
-      const unavailableUser = await checkUnavailableUsers(body.users, body.date);
-      if (unavailableUser) {
-        return res.status(400).json({ error: `Usuário ${unavailableUser.name} está ${unavailableUser.reason} e não pode ser escalado nesta data.` });
+    if (body.time !== undefined) {
+      const timeStart = body.time?.start || '';
+      if (!timeStart) return res.status(400).json({ error: 'time.start required' });
+    }
+
+    if (body.date && body.locationId && body.time?.start) {
+      if (await hasDuplicateAgendaEvent(AgendaEvent, { date: body.date, locationId: body.locationId, timeStart: body.time.start, ignoreId: req.params.id })) {
+        return res.status(400).json({ error: 'Já existe um evento cadastrado para este local e horário.' });
+      }
+    }
+
+    if (body.users) {
+      let checkDate = body.date;
+      if (!checkDate) {
+        const existing = await AgendaEvent.findById(req.params.id).select('date');
+        checkDate = existing?.date;
+      }
+      if (checkDate) {
+        const unavailableUser = await checkUnavailableUsers(body.users, checkDate);
+        if (unavailableUser) {
+          return res.status(400).json({ error: `Usuário ${unavailableUser.name} está ${unavailableUser.reason} e não pode ser escalado nesta data.` });
+        }
       }
     }
 
