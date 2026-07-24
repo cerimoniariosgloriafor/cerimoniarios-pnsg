@@ -2,6 +2,7 @@ import { Router } from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import User from '../models/user';
+import AuditLog from '../models/auditLog';
 
 const router = Router();
 
@@ -28,6 +29,13 @@ router.post('/login', async (req, res) => {
     if (!ok) return res.status(401).json({ error: 'Credenciais inválidas' });
 
     const access = signAccess(user);
+
+    // Create an audit log entry for the login
+    const auditLog = new AuditLog({
+      user: user._id,
+      logType: 'login',
+    });
+    await auditLog.save();
 
     const u = user.toObject(); delete (u as any).passwordHash; res.json({ user: u, accessToken: access, mustChangePassword: !!user.mustChangePassword });
   } catch (err) {
