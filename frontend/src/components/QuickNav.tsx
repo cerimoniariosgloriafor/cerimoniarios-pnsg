@@ -11,6 +11,7 @@ const navItems = [
 ];
 
 export default function QuickNav({ navigate }: QuickNavProps) {
+
   const buttonStyle: React.CSSProperties = {
     display: 'flex',
     alignItems: 'center',

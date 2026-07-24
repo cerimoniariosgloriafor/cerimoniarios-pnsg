@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import { useAuth } from './context/AuthContext';
 import LocationsPage from './pages/locations/LocationsPage';
@@ -22,6 +22,7 @@ import EventChecklistPage from './pages/checklist/EventChecklistPage';
 import EventDetailsModal from './components/EventDetailsModal';
 import logo from './assets/logo.png';
 import { MaterialsPage } from './pages/materials/MaterialsPage';
+import AuditLogPage from './pages/audit/AuditLogPage';
 import QuickNav from './components/QuickNav';
 
 const modalStyle: React.CSSProperties = { position: 'fixed', left: 0, right: 0, top: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(2,6,23,0.4)', zIndex: 200 };
@@ -53,6 +54,7 @@ export default function App() {
     if (p === '/reports/individual') return 'reports_individual';
     if (p === '/functions') return 'functions';
     if (p === '/materials') return 'materials';
+    if (p === '/audit') return 'audit';
     if (p === '/agenda') return 'templates_agenda';
     if (p === '/agenda/new') return 'agenda_new';
     if (p.startsWith('/agenda/') && p.endsWith('/report')) return 'agenda_report';
@@ -87,6 +89,7 @@ export default function App() {
   const [showPendingRequests, setShowPendingRequests] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showRecentEvents, setShowRecentEvents] = useState(false);
+  const sessionLogSentRef = useRef(false);
   const isServo = !!(authUser && authUser.role === 'servo');
   const isAdmin = !!(authUser && authUser.role === 'admin');
 
@@ -225,6 +228,8 @@ export default function App() {
       setPage('functions'); setCurrentId(null);
     } else if (normalized === '/materials') {
       setPage('materials'); setCurrentId(null);
+    } else if (normalized === '/audit') {
+      setPage('audit'); setCurrentId(null);
     } else if (normalized === '/agenda') {
       setPage('templates_agenda'); setCurrentId(null);
     } else if (normalized === '/agenda/new') {
@@ -270,6 +275,7 @@ export default function App() {
       else if (p === '/reports/masses') { setPage('reports_masses'); setCurrentId(null); }
       else if (p === '/reports/individual') { setPage('reports_individual'); setCurrentId(null); }
       else if (p === '/materials') { setPage('materials'); setCurrentId(null); }
+      else if (p === '/audit') { setPage('audit'); setCurrentId(null); }
       else if (p === '/agenda') { setPage('templates_agenda'); setCurrentId(null); }
       else if (p === '/agenda/new') { setPage('agenda_new'); setCurrentId(null); }
       else if (p.startsWith('/agenda/') && p.endsWith('/report')) { setPage('agenda_report'); setCurrentId(p.split('/')[2]); }
@@ -291,6 +297,22 @@ export default function App() {
       navigate('/login');
     }
   }, [authLoading, authUser, page]);
+
+  useEffect(() => {
+    if (authUser && !sessionLogSentRef.current) {
+      const token = localStorage.getItem('accessToken');
+      if (token) {
+        sessionLogSentRef.current = true; // Set immediately to prevent race conditions
+        axios.post('/audit-logs/access', {}, {
+          headers: { Authorization: `Bearer ${token}` }
+        }).catch(err => {
+          console.error("Failed to log session access", err);
+          sessionLogSentRef.current = false; // Optionally reset on failure
+        });
+      }
+    }
+  }, [authUser]);
+
 
   useEffect(() => {
     if (!sidebarOpen) return;
@@ -562,6 +584,13 @@ export default function App() {
                     <span className="icon">📊</span>
                     <span className="label">Relatórios</span>
                   </button>
+
+                  {isAdmin && (
+                    <button className="nav-btn" onClick={() => navigate('/audit')}>
+                      <span className="icon">🛡️</span>
+                      <span className="label">Auditoria</span>
+                    </button>
+                  )}
                 </>
               )}
 
@@ -980,6 +1009,10 @@ export default function App() {
 
               {page === 'materials' && (
                 <MaterialsPage />
+              )}
+
+              {page === 'audit' && (
+                <AuditLogPage />
               )}
 
               {page === 'reports_home' && (
